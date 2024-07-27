@@ -1,88 +1,110 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;netstandard2.0;net8.0;net7.0;net6.0</TargetFrameworks>
-    <!-- Debug IL generation -->
-    <ILEmitBackendSaveAssemblies>false</ILEmitBackendSaveAssemblies>
-    <!-- Type 'Microsoft.Extensions.DependencyInjection.ServiceCollection' has been forwarded down.-->
-    <NoWarn>$(NoWarn);CP0001</NoWarn>
-    <IsPackable>true</IsPackable>
-    
-    <Nullable>enable</Nullable>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <LangVersion>preview</LangVersion>
-    <CoreLibSharedDir>$(SolutionDir)extern\</CoreLibSharedDir>
-    <ILLinkDirectory>ILLink\</ILLinkDirectory>
-    <CommonPath>$(SolutionDir)extern\Common\src\</CommonPath>
-    <LinkCodeAnalysis>System\Diagnostics\CodeAnalysis</LinkCodeAnalysis>
-    <LinkCommonExtensions>Common\src\Extensions</LinkCommonExtensions>
-    
-    <PackageDescription>Default implementation of dependency injection for Microsoft.Extensions.DependencyInjection.</PackageDescription>
-  </PropertyGroup>
+    <PropertyGroup Label="Package">
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>8.0.0</Version>
+        <Title>Antelcat.DependencyInjectionEx</Title>
+        <Authors>Antelcat</Authors>
+        <Description>Extended Microsoft Dependency Injection</Description>
+        <Copyright>Copyright Antelcat.</Copyright>
+        <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>di;dependency injection;ioc</PackageTags>
+        <PackageIcon>Icon.png</PackageIcon>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
 
-  <!-- DesignTimeBuild requires all the TargetFramework Derived Properties to not be present in the first property group. -->
-  <PropertyGroup>
-    <ILEmitBackend Condition="'$(TargetFramework)' != 'netstandard2.0'">true</ILEmitBackend>
-    <DefineConstants Condition="'$(ILEmitBackend)' == 'true'">$(DefineConstants);IL_EMIT</DefineConstants>
-    <DefineConstants Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework' and&#xD;&#xA;                                '$(ILEmitBackendSaveAssemblies)' == 'true'">$(DefineConstants);SAVE_ASSEMBLIES</DefineConstants>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.1;netstandard2.0;net8.0;net7.0;net6.0;net462</TargetFrameworks>
+        <!-- Debug IL generation -->
+        <ILEmitBackendSaveAssemblies>false</ILEmitBackendSaveAssemblies>
+        <NoWarn>$(NoWarn);CP0001</NoWarn>
+        <IsPackable>true</IsPackable>
 
-  <ItemGroup>
-    <ILLinkSubstitutionsXmls Include="$(ILLinkDirectory)ILLink.Substitutions.xml" />
-  </ItemGroup>
+        <Nullable>enable</Nullable>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <LangVersion>preview</LangVersion>
+        <CoreLibSharedDir>$(SolutionDir)extern\</CoreLibSharedDir>
+        <ILLinkDirectory>ILLink\</ILLinkDirectory>
+        <CommonPath>$(SolutionDir)extern\Common\src\</CommonPath>
+        <LinkCodeAnalysis>System\Diagnostics\CodeAnalysis</LinkCodeAnalysis>
+        <LinkCommonExtensions>Common\src\Extensions</LinkCommonExtensions>
 
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
-    <Compile Include="$(CommonPath)Extensions\ParameterDefaultValue\ParameterDefaultValue.netcoreapp.cs" 
-             LinkBase="$(LinkCommonExtensions)\ParameterDefaultValue" />
-  </ItemGroup>
+        <PackageDescription>Default implementation of dependency injection for Microsoft.Extensions.DependencyInjection.</PackageDescription>
+    </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
-    <Compile Include="$(CommonPath)Extensions\ParameterDefaultValue\ParameterDefaultValue.netstandard.cs" 
-             LinkBase="$(LinkCommonExtensions)\ParameterDefaultValue" />
-    <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\DynamicallyAccessedMembersAttribute.cs" 
-             LinkBase="$(LinkCodeAnalysis)"/>
-    <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\DynamicallyAccessedMemberTypes.cs"
-             LinkBase="$(LinkCodeAnalysis)"/>
-    <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\UnconditionalSuppressMessageAttribute.cs"
-             LinkBase="$(LinkCodeAnalysis)"/>
-  </ItemGroup>
+    <!-- DesignTimeBuild requires all the TargetFramework Derived Properties to not be present in the first property group. -->
+    <PropertyGroup>
+        <ILEmitBackend Condition="'$(TargetFramework)' != 'netstandard2.0'">true</ILEmitBackend>
+        <DefineConstants Condition="'$(ILEmitBackend)' == 'true'">$(DefineConstants);IL_EMIT</DefineConstants>
+        <DefineConstants Condition="$([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework' and&#xD;&#xA;                                '$(ILEmitBackendSaveAssemblies)' == 'true'">$(DefineConstants);SAVE_ASSEMBLIES</DefineConstants>
+    </PropertyGroup>
 
-  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">
-    <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\RequiresDynamicCodeAttribute.cs" />
-  </ItemGroup>
+    <ItemGroup>
+        <ILLinkSubstitutionsXmls Include="$(ILLinkDirectory)ILLink.Substitutions.xml"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="**\*.cs" />
-    <Compile Remove="obj\**\*.cs" />
-    <Compile Remove="ServiceLookup\ILEmit\**\*.cs" />
-    <Compile Condition="'$(ILEmitBackend)' == 'true'" Include="ServiceLookup\ILEmit\*.cs" />
-    <Compile Include="$(CommonPath)Extensions\ParameterDefaultValue\ParameterDefaultValue.cs" 
-             LinkBase="$(LinkCommonExtensions)\ParameterDefaultValue" />
-    <Compile Include="$(CommonPath)Extensions\TypeNameHelper\TypeNameHelper.cs" 
-             LinkBase="$(LinkCommonExtensions)\TypeNameHelper" />
-    <EmbeddedResource Update="Resources\Strings.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>SR.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+    <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETCoreApp'">
+        <Compile Include="$(CommonPath)Extensions\ParameterDefaultValue\ParameterDefaultValue.netcoreapp.cs"
+                 LinkBase="$(LinkCommonExtensions)\ParameterDefaultValue"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-    <PackageReference Include="PolySharp"  Version="1.14.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <Compile Update="Resources\Strings.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Strings.resx</DependentUpon>
-    </Compile>
-    
-  </ItemGroup>
+    <ItemGroup Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
+        <Compile Include="$(CommonPath)Extensions\ParameterDefaultValue\ParameterDefaultValue.netstandard.cs"
+                 LinkBase="$(LinkCommonExtensions)\ParameterDefaultValue"/>
+        <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\DynamicallyAccessedMembersAttribute.cs"
+                 LinkBase="$(LinkCodeAnalysis)"/>
+        <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\DynamicallyAccessedMemberTypes.cs"
+                 LinkBase="$(LinkCodeAnalysis)"/>
+        <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\UnconditionalSuppressMessageAttribute.cs"
+                 LinkBase="$(LinkCodeAnalysis)"/>
+    </ItemGroup>
 
-  <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.1'))">
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
-  </ItemGroup>
+    <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">
+        <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\RequiresDynamicCodeAttribute.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="**\*.cs"/>
+        <Compile Remove="obj\**\*.cs"/>
+        <Compile Remove="ServiceLookup\ILEmit\**\*.cs"/>
+        <Compile Condition="'$(ILEmitBackend)' == 'true'" Include="ServiceLookup\ILEmit\*.cs"/>
+        <Compile Include="$(CommonPath)Extensions\ParameterDefaultValue\ParameterDefaultValue.cs"
+                 LinkBase="$(LinkCommonExtensions)\ParameterDefaultValue"/>
+        <Compile Include="$(CommonPath)Extensions\TypeNameHelper\TypeNameHelper.cs"
+                 LinkBase="$(LinkCommonExtensions)\TypeNameHelper"/>
+        <EmbeddedResource Update="Resources\Strings.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>SR.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0"/>
+        <PackageReference Include="PolySharp" Version="1.14.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <Compile Update="Resources\Strings.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Strings.resx</DependentUpon>
+        </Compile>
+
+    </ItemGroup>
+
+    <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netstandard2.1'))">
+        <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4"/>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\..\docs\Icon.png">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+            <Link>Icon.png</Link>
+        </None>
+    </ItemGroup>
 
 </Project>

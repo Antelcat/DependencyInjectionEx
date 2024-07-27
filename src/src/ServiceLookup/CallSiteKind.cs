@@ -3,7 +3,7 @@
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup
 {
-    public enum CallSiteKind
+    internal enum CallSiteKind
     {
         Factory,
 

@@ -18,8 +18,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
         public          object?      Key                { get; set; }
 
         public required ServiceResolvedHandler OnResolve { private get; init; }
-        
-        public void Resolved(object target) => OnResolve(ServiceType, target, Kind);
+
+        public void Resolved(object target) => OnResolve(ServiceType, target, (ServiceResolveKind)Kind);
 
         public bool CaptureDisposable =>
             ImplementationType == null ||

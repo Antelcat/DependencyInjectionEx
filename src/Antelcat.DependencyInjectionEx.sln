@@ -7,6 +7,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{74C4FAFF-491
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.DependencyInjectionEx.Tests", "tests\Antelcat.DependencyInjectionEx.Tests\Antelcat.DependencyInjectionEx.Tests.csproj", "{5C512F34-51A5-4BC4-8210-96A106963DB0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{4700CEB6-81D7-4FD9-B73E-446E216A8FC3}"
+	ProjectSection(SolutionItems) = preProject
+		..\docs\Icon.png = ..\docs\Icon.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

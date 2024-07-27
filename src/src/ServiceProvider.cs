@@ -37,7 +37,7 @@ namespace Antelcat.DependencyInjectionEx
 
         public event ServiceResolvedHandler? ServiceResolved;
 
-        private void OnServiceResolved(Type serviceType, object instance, CallSiteKind kind) =>
+        private void OnServiceResolved(Type serviceType, object instance, ServiceResolveKind kind) =>
             ServiceResolved?.Invoke(serviceType, instance, kind);
 
         internal static bool VerifyOpenGenericServiceTrimmability { get; } =
@@ -62,7 +62,7 @@ namespace Antelcat.DependencyInjectionEx
             serviceAccessors = new ConcurrentDictionary<ServiceIdentifier, ServiceAccessor>();
 
             CallSiteFactory = new CallSiteFactory(serviceDescriptors, OnServiceResolved);
-            // The list of built in services that aren't part of the list of service descriptors
+            // The list of built-in services that aren't part of the list of service descriptors
             // keep this in sync with CallSiteFactory.IsService
             CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProvider)),
                 new ServiceProviderCallSite { OnResolve = OnServiceResolved });
