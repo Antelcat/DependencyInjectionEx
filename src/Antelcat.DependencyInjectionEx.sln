@@ -1,0 +1,35 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Antelcat.DependencyInjectionEx", "src\Antelcat.DependencyInjectionEx.csproj", "{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5F2D3A6A-76D3-4C22-A7F7-8D73D67A98F8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{74C4FAFF-491D-448C-8CA0-F8E5FC838CC5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.DependencyInjectionEx.Tests", "tests\Antelcat.DependencyInjectionEx.Tests\Antelcat.DependencyInjectionEx.Tests.csproj", "{5C512F34-51A5-4BC4-8210-96A106963DB0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A} = {74C4FAFF-491D-448C-8CA0-F8E5FC838CC5}
+		{5C512F34-51A5-4BC4-8210-96A106963DB0} = {5F2D3A6A-76D3-4C22-A7F7-8D73D67A98F8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {68A7BDA7-8093-433C-BF7A-8A6A7560BD02}
+	EndGlobalSection
+EndGlobal
