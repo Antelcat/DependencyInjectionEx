@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{4700CEB6-81D7-4FD9-B73E-446E216A8FC3}"
 	ProjectSection(SolutionItems) = preProject
 		..\docs\Icon.png = ..\docs\Icon.png
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.DependencyInjectionEx.Autowired.Abstractions", "src\Antelcat.DependencyInjectionEx.Autowired.Abstractions\Antelcat.DependencyInjectionEx.Autowired.Abstractions.csproj", "{EA1E2106-1A29-4F25-B94A-3963A72A60D0}"

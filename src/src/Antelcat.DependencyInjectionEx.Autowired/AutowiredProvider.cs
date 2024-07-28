@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
@@ -8,10 +7,11 @@ namespace Antelcat.DependencyInjectionEx.Autowired;
 public class AutowiredProvider
 {
     private readonly ConcurrentDictionary<Type, AutowiredResolver> resolvers = [];
-    private readonly HashSet<Type>                                             ignores   = [];
+    private readonly HashSet<Type>                                 ignores   = [];
 
-    public void Inject(object target, IServiceProvider provider)
+    public void Inject(object target, IServiceProvider provider, ServiceResolveKind kind)
     {
+        if (kind is not ServiceResolveKind.Constructor) return;
         var type = target.GetType();
         if (ignores.Contains(type)) return;
         if (!resolvers.TryGetValue(type, out var resolver))

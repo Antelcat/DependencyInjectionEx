@@ -7,7 +7,7 @@ public static class AutowiredServiceProviderBuilderExtensions
     private static ServiceProvider AutowiredProvider(this ServiceProvider serviceProvider)
     {
         var ap = new AutowiredProvider();
-        serviceProvider.ServiceResolved += (provider, type, instance, kind) => ap.Inject(instance, provider);
+        serviceProvider.ServiceResolved += (provider, type, instance, kind) => ap.Inject(instance, provider, kind);
         return serviceProvider;
     }
 

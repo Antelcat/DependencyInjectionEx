@@ -4,6 +4,7 @@
     
     <PropertyGroup>
         <Title>Antelcat.DependencyInjectionEx.Autowired</Title>
+        <Description>Autowired Dependency Injection</Description>
         <PackageTags>di;dependency injection;ioc;autowired;inject</PackageTags>
     </PropertyGroup>
     
