@@ -9,11 +9,11 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
     [method: RequiresDynamicCode("Creates DynamicMethods")]
     internal sealed class ILEmitServiceProviderEngine(ServiceProvider serviceProvider) : ServiceProviderEngine
     {
-        private readonly ILEmitResolverBuilder _expressionResolverBuilder = new(serviceProvider);
+        private readonly ILEmitResolverBuilder expressionResolverBuilder = new(serviceProvider);
 
         public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
         {
-            return _expressionResolverBuilder.Build(callSite);
+            return expressionResolverBuilder.Build(callSite);
         }
     }
 }

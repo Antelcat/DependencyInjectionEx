@@ -39,17 +39,17 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             CallSiteRuntimeResolver.Instance,
             typeof(CallSiteRuntimeResolver));
 
-        private readonly ServiceProviderEngineScope _rootScope;
+        private readonly ServiceProviderEngineScope rootScope;
 
-        private readonly ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>> _scopeResolverCache;
+        private readonly ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>> scopeResolverCache;
 
-        private readonly Func<ServiceCacheKey, ServiceCallSite, Func<ServiceProviderEngineScope, object>> _buildTypeDelegate;
+        private readonly Func<ServiceCacheKey, ServiceCallSite, Func<ServiceProviderEngineScope, object>> buildTypeDelegate;
 
         public ExpressionResolverBuilder(ServiceProvider serviceProvider)
         {
-            _rootScope = serviceProvider.Root;
-            _scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>>();
-            _buildTypeDelegate = (key, cs) => BuildNoCache(cs);
+            rootScope = serviceProvider.Root;
+            scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>>();
+            buildTypeDelegate = (key, cs) => BuildNoCache(cs);
         }
 
         public Func<ServiceProviderEngineScope, object> Build(ServiceCallSite callSite)
@@ -58,9 +58,9 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
             {
 #if NETFRAMEWORK || NETSTANDARD2_0
-                return _scopeResolverCache.GetOrAdd(callSite.Cache.Key, key => _buildTypeDelegate(key, callSite));
+                return scopeResolverCache.GetOrAdd(callSite.Cache.Key, key => buildTypeDelegate(key, callSite));
 #else
-                return _scopeResolverCache.GetOrAdd(callSite.Cache.Key, _buildTypeDelegate, callSite);
+                return scopeResolverCache.GetOrAdd(callSite.Cache.Key, buildTypeDelegate, callSite);
 #endif
             }
 
@@ -70,7 +70,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
         public Func<ServiceProviderEngineScope, object> BuildNoCache(ServiceCallSite callSite)
         {
             Expression<Func<ServiceProviderEngineScope, object>> expression = BuildExpression(callSite);
-            DependencyInjectionEventSource.Log.ExpressionTreeGenerated(_rootScope.RootProvider, callSite.ServiceType, expression);
+            DependencyInjectionEventSource.Log.ExpressionTreeGenerated(rootScope.RootProvider, callSite.ServiceType, expression);
             return expression.Compile();
         }
 
@@ -94,7 +94,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 
         protected override Expression VisitRootCache(ServiceCallSite singletonCallSite, object? context)
         {
-            return Expression.Constant(CallSiteRuntimeResolver.Instance.Resolve(singletonCallSite, _rootScope));
+            return Expression.Constant(CallSiteRuntimeResolver.Instance.Resolve(singletonCallSite, rootScope));
         }
 
         protected override Expression VisitConstant(ConstantCallSite constantCallSite, object? context)

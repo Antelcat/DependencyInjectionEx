@@ -1,20 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="..\..\build\Build.props" />
+    
     <PropertyGroup Label="Package">
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>8.0.0</Version>
         <Title>Antelcat.DependencyInjectionEx</Title>
-        <Authors>Antelcat</Authors>
         <Description>Extended Microsoft Dependency Injection</Description>
-        <Copyright>Copyright Antelcat.</Copyright>
-        <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx.git</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <PackageTags>di;dependency injection;ioc</PackageTags>
-        <PackageIcon>Icon.png</PackageIcon>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>di;dependency injection;ioc;inject</PackageTags>
     </PropertyGroup>
 
+    
     <PropertyGroup>
         <TargetFrameworks>netstandard2.1;netstandard2.0;net8.0;net7.0;net6.0;net462</TargetFrameworks>
         <!-- Debug IL generation -->
@@ -23,15 +17,15 @@
         <IsPackable>true</IsPackable>
 
         <Nullable>enable</Nullable>
-        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
         <LangVersion>preview</LangVersion>
-        <CoreLibSharedDir>$(SolutionDir)extern\</CoreLibSharedDir>
+        <RootNamespace>Antelcat.DependencyInjectionEx</RootNamespace>
         <ILLinkDirectory>ILLink\</ILLinkDirectory>
+        <CoreLibSharedDir>$(SolutionDir)extern\</CoreLibSharedDir>
         <CommonPath>$(SolutionDir)extern\Common\src\</CommonPath>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
         <LinkCodeAnalysis>System\Diagnostics\CodeAnalysis</LinkCodeAnalysis>
         <LinkCommonExtensions>Common\src\Extensions</LinkCommonExtensions>
 
-        <PackageDescription>Default implementation of dependency injection for Microsoft.Extensions.DependencyInjection.</PackageDescription>
     </PropertyGroup>
 
     <!-- DesignTimeBuild requires all the TargetFramework Derived Properties to not be present in the first property group. -->
@@ -98,13 +92,6 @@
         <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4"/>
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0"/>
     </ItemGroup>
-
-    <ItemGroup>
-        <None Include="..\..\docs\Icon.png">
-            <Pack>True</Pack>
-            <PackagePath></PackagePath>
-            <Link>Icon.png</Link>
-        </None>
-    </ItemGroup>
+    
 
 </Project>

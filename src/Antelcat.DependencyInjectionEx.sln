@@ -1,5 +1,5 @@
 ﻿Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Antelcat.DependencyInjectionEx", "src\Antelcat.DependencyInjectionEx.csproj", "{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Antelcat.DependencyInjectionEx", "src\Antelcat.DependencyInjectionEx\Antelcat.DependencyInjectionEx.csproj", "{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{5F2D3A6A-76D3-4C22-A7F7-8D73D67A98F8}"
 EndProject
@@ -10,6 +10,15 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{4700CEB6-81D7-4FD9-B73E-446E216A8FC3}"
 	ProjectSection(SolutionItems) = preProject
 		..\docs\Icon.png = ..\docs\Icon.png
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.DependencyInjectionEx.Autowired.Abstractions", "src\Antelcat.DependencyInjectionEx.Autowired.Abstractions\Antelcat.DependencyInjectionEx.Autowired.Abstractions.csproj", "{EA1E2106-1A29-4F25-B94A-3963A72A60D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.DependencyInjectionEx.Autowired", "src\Antelcat.DependencyInjectionEx.Autowired\Antelcat.DependencyInjectionEx.Autowired.csproj", "{5E753DBC-141C-4EA1-9FEA-E9E4EA21FAAF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{74EE1D04-107F-4DEF-823F-E8B6584EF7AF}"
+	ProjectSection(SolutionItems) = preProject
+		build\Build.props = build\Build.props
 	EndProjectSection
 EndProject
 Global
@@ -26,6 +35,14 @@ Global
 		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5C512F34-51A5-4BC4-8210-96A106963DB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA1E2106-1A29-4F25-B94A-3963A72A60D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA1E2106-1A29-4F25-B94A-3963A72A60D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA1E2106-1A29-4F25-B94A-3963A72A60D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA1E2106-1A29-4F25-B94A-3963A72A60D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E753DBC-141C-4EA1-9FEA-E9E4EA21FAAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E753DBC-141C-4EA1-9FEA-E9E4EA21FAAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E753DBC-141C-4EA1-9FEA-E9E4EA21FAAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E753DBC-141C-4EA1-9FEA-E9E4EA21FAAF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -33,6 +50,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{C5ECD02C-FA5A-4B56-9CA2-47AD8989714A} = {74C4FAFF-491D-448C-8CA0-F8E5FC838CC5}
 		{5C512F34-51A5-4BC4-8210-96A106963DB0} = {5F2D3A6A-76D3-4C22-A7F7-8D73D67A98F8}
+		{EA1E2106-1A29-4F25-B94A-3963A72A60D0} = {74C4FAFF-491D-448C-8CA0-F8E5FC838CC5}
+		{5E753DBC-141C-4EA1-9FEA-E9E4EA21FAAF} = {74C4FAFF-491D-448C-8CA0-F8E5FC838CC5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {68A7BDA7-8093-433C-BF7A-8A6A7560BD02}

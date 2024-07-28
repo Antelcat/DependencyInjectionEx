@@ -37,8 +37,8 @@ namespace Antelcat.DependencyInjectionEx
 
         public event ServiceResolvedHandler? ServiceResolved;
 
-        private void OnServiceResolved(Type serviceType, object instance, ServiceResolveKind kind) =>
-            ServiceResolved?.Invoke(serviceType, instance, kind);
+        internal void OnServiceResolved(IServiceProvider provider, Type serviceType, object instance, ServiceResolveKind kind)
+            => ServiceResolved?.Invoke(provider, serviceType, instance, kind);
 
         internal static bool VerifyOpenGenericServiceTrimmability { get; } =
             AppContext.TryGetSwitch("Antelcat.DependencyInjectionEx.VerifyOpenGenericServiceTrimmability", out bool verifyOpenGenerics) && verifyOpenGenerics;
@@ -64,14 +64,10 @@ namespace Antelcat.DependencyInjectionEx
             CallSiteFactory = new CallSiteFactory(serviceDescriptors, OnServiceResolved);
             // The list of built-in services that aren't part of the list of service descriptors
             // keep this in sync with CallSiteFactory.IsService
-            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProvider)),
-                new ServiceProviderCallSite { OnResolve = OnServiceResolved });
-            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceScopeFactory)),
-                new ConstantCallSite(typeof(IServiceScopeFactory), Root) { OnResolve = OnServiceResolved });
-            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsService)),
-                new ConstantCallSite(typeof(IServiceProviderIsService), CallSiteFactory) { OnResolve = OnServiceResolved });
-            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsKeyedService)),
-                new ConstantCallSite(typeof(IServiceProviderIsKeyedService), CallSiteFactory) { OnResolve = OnServiceResolved });
+            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProvider)), new ServiceProviderCallSite());
+            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceScopeFactory)), new ConstantCallSite(typeof(IServiceScopeFactory), Root) );
+            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsService)), new ConstantCallSite(typeof(IServiceProviderIsService), CallSiteFactory));
+            CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsKeyedService)), new ConstantCallSite(typeof(IServiceProviderIsKeyedService), CallSiteFactory));
 
             if (options.ValidateScopes) callSiteValidator = new CallSiteValidator();
 
@@ -186,10 +182,7 @@ namespace Antelcat.DependencyInjectionEx
 
         private void ValidateService(ServiceDescriptor descriptor)
         {
-            if (descriptor.ServiceType is { IsGenericType: true, IsConstructedGenericType: false })
-            {
-                return;
-            }
+            if (descriptor.ServiceType is { IsGenericType: true, IsConstructedGenericType: false }) return;
 
             try
             {

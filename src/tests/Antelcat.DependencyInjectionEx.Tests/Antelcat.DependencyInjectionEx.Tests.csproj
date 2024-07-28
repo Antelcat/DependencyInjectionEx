@@ -22,7 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Antelcat.DependencyInjectionEx.csproj" />
+      <ProjectReference Include="..\..\src\Antelcat.DependencyInjectionEx.Autowired\Antelcat.DependencyInjectionEx.Autowired.csproj" />
     </ItemGroup>
 
 </Project>

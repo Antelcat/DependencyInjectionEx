@@ -335,8 +335,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                 ResultCache resultCache = (cacheLocation == CallSiteResultCacheLocation.Scope || cacheLocation == CallSiteResultCacheLocation.Root)
                     ? new ResultCache(cacheLocation, callSiteKey)
                     : new ResultCache(CallSiteResultCacheLocation.None, callSiteKey);
-                return callSiteCache[callSiteKey] = new IEnumerableCallSite(resultCache, itemType, callSites)
-                    { OnResolve = serviceResolved };
+                return callSiteCache[callSiteKey] = new IEnumerableCallSite(resultCache, itemType, callSites);
             }
             finally
             {
@@ -362,28 +361,20 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             var             lifetime = new ResultCache(descriptor.Lifetime, serviceIdentifier, slot);
             if (descriptor.HasImplementationInstance())
             {
-                callSite = new ConstantCallSite(descriptor.ServiceType, descriptor.GetImplementationInstance()){
-                    OnResolve = serviceResolved
-                };
+                callSite = new ConstantCallSite(descriptor.ServiceType, descriptor.GetImplementationInstance());
             }
             else switch (descriptor)
             {
                 case { IsKeyedService: false, ImplementationFactory: not null }:
                     callSite = new FactoryCallSite(lifetime,
                         descriptor.ServiceType,
-                        descriptor.ImplementationFactory)
-                    {
-                        OnResolve = serviceResolved
-                    };
+                        descriptor.ImplementationFactory);
                     break;
                 case { IsKeyedService: true, KeyedImplementationFactory: not null }:
                     callSite = new FactoryCallSite(lifetime, 
                         descriptor.ServiceType, 
                         serviceIdentifier.ServiceKey!,
-                        descriptor.KeyedImplementationFactory)
-                    {
-                        OnResolve = serviceResolved
-                    };
+                        descriptor.KeyedImplementationFactory);
                     break;
                 default:
                 {
@@ -476,10 +467,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                         ParameterInfo[] parameters  = constructor.GetParameters();
                         if (parameters.Length == 0)
                         {
-                            return new ConstructorCallSite(lifetime, serviceIdentifier.ServiceType, constructor)
-                            {
-                                OnResolve = serviceResolved
-                            };
+                            return new ConstructorCallSite(lifetime, serviceIdentifier.ServiceType, constructor);
                         }
 
                         parameterCallSites = CreateArgumentCallSites(
@@ -489,11 +477,10 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                             parameters,
                             throwIfCallSiteNotFound: true)!;
 
-                        return new ConstructorCallSite(lifetime, serviceIdentifier.ServiceType, constructor,
-                            parameterCallSites)
-                        {
-                            OnResolve = serviceResolved
-                        };
+                        return new ConstructorCallSite(lifetime, 
+                            serviceIdentifier.ServiceType,
+                            constructor,
+                            parameterCallSites);
                     }
                 }
 
@@ -559,10 +546,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                     return new ConstructorCallSite(lifetime,
                         serviceIdentifier.ServiceType,
                         bestConstructor,
-                        parameterCallSites)
-                    {
-                        OnResolve = serviceResolved
-                    };
+                        parameterCallSites);
                 }
             }
             finally
@@ -595,10 +579,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                             throw new InvalidOperationException(SR.InvalidServiceKeyType);
                         }
 
-                        callSite = new ConstantCallSite(parameterType, serviceIdentifier.ServiceKey)
-                        {
-                            OnResolve = serviceResolved
-                        };
+                        callSite = new ConstantCallSite(parameterType, serviceIdentifier.ServiceKey);
                         break;
                     }
 
@@ -612,10 +593,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 
                 if (callSite == null && ParameterDefaultValue.TryGetDefaultValue(parameters[index], out object? defaultValue))
                 {
-                    callSite = new ConstantCallSite(parameterType, defaultValue)
-                    {
-                        OnResolve = serviceResolved
-                    };
+                    callSite = new ConstantCallSite(parameterType, defaultValue);
                 }
 
                 if (callSite == null)

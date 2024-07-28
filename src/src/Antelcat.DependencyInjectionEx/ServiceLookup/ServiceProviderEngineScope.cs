@@ -13,18 +13,18 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 {
     [DebuggerDisplay("{DebuggerToString(),nq}")]
     [DebuggerTypeProxy(typeof(ServiceProviderEngineScopeDebugView))]
-    internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope) : IServiceScope,
-        IServiceProvider, IKeyedServiceProvider, IAsyncDisposable, IServiceScopeFactory
+    internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope) 
+        : IServiceScope, IServiceProvider, IKeyedServiceProvider, IAsyncDisposable, IServiceScopeFactory
     {
         // For testing and debugging only
         internal IList<object> Disposables => disposables ?? (IList<object>)Array.Empty<object>();
 
-        private bool _disposed;
+        private bool disposed;
         private List<object>? disposables;
 
         internal Dictionary<ServiceCacheKey, object?> ResolvedServices { get; } = new();
 
-        internal bool Disposed => _disposed;
+        internal bool Disposed => disposed;
 
         // This lock protects state on the scope, in particular, for the root scope, it protects
         // the list of disposable entries only, since ResolvedServices are cached on CallSites
@@ -37,30 +37,21 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 
         public object? GetService(Type serviceType)
         {
-            if (_disposed)
-            {
-                ThrowHelper.ThrowObjectDisposedException();
-            }
+            if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
             return RootProvider.GetService(ServiceIdentifier.FromServiceType(serviceType), this);
         }
 
         public object? GetKeyedService(Type serviceType, object? serviceKey)
         {
-            if (_disposed)
-            {
-                ThrowHelper.ThrowObjectDisposedException();
-            }
+            if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
             return RootProvider.GetKeyedService(serviceType, serviceKey, this);
         }
 
         public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
         {
-            if (_disposed)
-            {
-                ThrowHelper.ThrowObjectDisposedException();
-            }
+            if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
             return RootProvider.GetRequiredKeyedService(serviceType, serviceKey, this);
         }
@@ -80,13 +71,13 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             bool disposed = false;
             lock (Sync)
             {
-                if (_disposed)
+                if (this.disposed)
                 {
                     disposed = true;
                 }
                 else
                 {
-                    disposables ??= new List<object>();
+                    disposables ??= [];
 
                     disposables.Add(service);
                 }
@@ -189,7 +180,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
         {
             lock (Sync)
             {
-                if (_disposed)
+                if (disposed)
                 {
                     return null;
                 }
@@ -200,7 +191,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                 // We've transitioned to the disposed state, so future calls to
                 // CaptureDisposable will immediately dispose the object.
                 // No further changes to _state.Disposables, are allowed.
-                _disposed = true;
+                disposed = true;
 
             }
 
@@ -225,7 +216,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             {
                 debugText += $", IsScope = true";
             }
-            if (_disposed)
+            if (disposed)
             {
                 debugText += $", Disposed = true";
             }
@@ -238,7 +229,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                 [..serviceProvider.RootProvider.CallSiteFactory.Descriptors];
 
             public List<object> Disposables => [..serviceProvider.Disposables];
-            public bool         Disposed    => serviceProvider._disposed;
+            public bool         Disposed    => serviceProvider.disposed;
             public bool         IsScope     => !serviceProvider.IsRootScope;
         }
     }

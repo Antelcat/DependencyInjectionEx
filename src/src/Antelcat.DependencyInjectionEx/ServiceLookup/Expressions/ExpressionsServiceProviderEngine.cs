@@ -8,11 +8,11 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 {
     internal sealed class ExpressionsServiceProviderEngine(ServiceProvider serviceProvider) : ServiceProviderEngine
     {
-        private readonly ExpressionResolverBuilder _expressionResolverBuilder = new(serviceProvider);
+        private readonly ExpressionResolverBuilder expressionResolverBuilder = new(serviceProvider);
 
         public override Func<ServiceProviderEngineScope, object> RealizeService(ServiceCallSite callSite)
         {
-            return _expressionResolverBuilder.Build(callSite);
+            return expressionResolverBuilder.Build(callSite);
         }
     }
 }

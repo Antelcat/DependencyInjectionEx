@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup
 {
@@ -16,11 +18,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
         public          ResultCache  Cache              { get; } = cache;
         public          object?      Value              { get; set; }
         public          object?      Key                { get; set; }
-
-        public required ServiceResolvedHandler OnResolve { private get; init; }
-
-        public void Resolved(object target) => OnResolve(ServiceType, target, (ServiceResolveKind)Kind);
-
+  
         public bool CaptureDisposable =>
             ImplementationType == null ||
             typeof(IDisposable).IsAssignableFrom(ImplementationType) ||

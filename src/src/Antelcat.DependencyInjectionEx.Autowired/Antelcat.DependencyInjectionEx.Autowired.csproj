@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\..\build\Build.props" />
+    
+    <PropertyGroup>
+        <Title>Antelcat.DependencyInjectionEx.Autowired</Title>
+        <PackageTags>di;dependency injection;ioc;autowired;inject</PackageTags>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net462;</TargetFrameworks>
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Antelcat.DependencyInjectionEx\Antelcat.DependencyInjectionEx.csproj"/>
+        <ProjectReference Include="..\Antelcat.DependencyInjectionEx.Autowired.Abstractions\Antelcat.DependencyInjectionEx.Autowired.Abstractions.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Antelcat.IL" Version="1.0.0"/>
+        <InternalsVisibleTo Include="Antelcat.DependencyInjectionEx.Tests"/>
+    </ItemGroup>
+
+</Project>

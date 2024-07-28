@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -27,10 +28,25 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                 return cached;
             }
 
-            return VisitCallSite(callSite, new RuntimeResolverContext
+            var callChain = new ResolveCallChain(scope.RootProvider.OnServiceResolved);
+            var ret = VisitCallSite(callSite, new RuntimeResolverContext
             {
-                Scope = scope
+                Scope     = scope,
+                CallChain = callChain
             });
+            callChain.OnResolved();
+            return ret;
+        }
+
+        protected override object? VisitCallSiteMain(ServiceCallSite callSite, RuntimeResolverContext argument)
+        {
+            var ret = base.VisitCallSiteMain(callSite, argument);
+            if (ret != null)
+                argument.CallChain.QueueResolved(argument.Scope, 
+                    callSite.ServiceType, 
+                    ret,
+                    (ServiceResolveKind)callSite.Kind);
+            return ret;
         }
 
         protected override object? VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context)
@@ -89,11 +105,13 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                     return callSiteValue;
                 }
 
-                object? resolved = VisitCallSiteMain(callSite, new RuntimeResolverContext
+                var rc = new RuntimeResolverContext
                 {
-                    Scope = serviceProviderEngine,
-                    AcquiredLocks = context.AcquiredLocks | lockType
-                });
+                    Scope         = serviceProviderEngine,
+                    AcquiredLocks = context.AcquiredLocks | lockType,
+                    CallChain     = context.CallChain
+                };
+                object? resolved = VisitCallSiteMain(callSite, rc);
                 serviceProviderEngine.CaptureDisposable(resolved);
                 callSite.Value = resolved;
                 return resolved;
@@ -132,11 +150,13 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                     return resolved;
                 }
 
-                resolved = VisitCallSiteMain(callSite, new RuntimeResolverContext
+                var rc = new RuntimeResolverContext
                 {
-                    Scope = serviceProviderEngine,
-                    AcquiredLocks = context.AcquiredLocks | lockType
-                });
+                    Scope         = serviceProviderEngine,
+                    AcquiredLocks = context.AcquiredLocks | lockType,
+                    CallChain = context.CallChain
+                };
+                resolved         =  VisitCallSiteMain(callSite, rc);
                 serviceProviderEngine.CaptureDisposable(resolved);
                 resolvedServices.Add(callSite.Cache.Key, resolved);
                 return resolved;
@@ -189,11 +209,22 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
         }
     }
 
-    internal struct RuntimeResolverContext
+    internal readonly struct RuntimeResolverContext
     {
-        public ServiceProviderEngineScope Scope { get; set; }
+        public ServiceProviderEngineScope Scope { get; init; }
 
-        public RuntimeResolverLock AcquiredLocks { get; set; }
+        public RuntimeResolverLock AcquiredLocks { get; init; }
+
+        public required ResolveCallChain CallChain { get; init; }
+    }
+
+    internal class ResolveCallChain(ServiceResolvedHandler resolvedHandler)
+    {
+        public void QueueResolved(IServiceProvider provider, Type serviceType, object resolved, ServiceResolveKind kind) => 
+            Resolves += () => resolvedHandler(provider, serviceType, resolved, kind);
+
+        private event Action? Resolves;
+        public void OnResolved() => Resolves?.Invoke();
     }
 
     [Flags]
