@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>8.0.0</Version>
+        <Version>8.0.1</Version>
         <Authors>Antelcat</Authors>
         <Copyright>Copyright Antelcat. All rights reversed</Copyright>
         <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>
@@ -10,7 +10,7 @@
         <PackageIcon>Icon.png</PackageIcon>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>Initial</PackageReleaseNotes>
+        <PackageReleaseNotes>Fix IL accelarate error</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,4 +25,9 @@
             <Link>README.md</Link>
         </None>
     </ItemGroup>
+    
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy $(ProjectDir)bin\Debug\*.nupkg ..\..\build\ /Y" />
+    </Target>
+
 </Project>
