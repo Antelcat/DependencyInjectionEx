@@ -258,8 +258,11 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
 
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-internal sealed class ServiceProviderEngineScopeWrap(ServiceProviderEngineScope scope) : IServiceProviderEngineScope
+internal sealed class ServiceProviderEngineScopeWrap(ServiceProviderEngineScope scope, ResolveCallChain callChain) : IServiceProviderEngineScope
 {
+    internal IServiceProvider Scope     => scope;
+    internal ResolveCallChain CallChain { get; } = callChain;
+    
     public void Dispose() => scope.Dispose();
 
     public IServiceProvider ServiceProvider => scope.ServiceProvider;

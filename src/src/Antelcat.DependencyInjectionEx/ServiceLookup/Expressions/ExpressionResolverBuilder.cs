@@ -214,7 +214,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
 
     protected override Expression VisitScopeCache(ServiceCallSite callSite, object? context)
     {
-        Func<ServiceProviderEngineScope, object> lambda = Build(callSite);
+        ServiceResolveHandler lambda = Build(callSite);
         return Expression.Invoke(Expression.Constant(lambda), ScopeParameter);
     }
 

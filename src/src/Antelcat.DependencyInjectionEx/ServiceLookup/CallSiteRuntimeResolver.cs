@@ -28,25 +28,18 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             return cached;
         }
 
-        var callChain = new ResolveCallChain(scope.RootProvider.OnServiceResolved);
         var ret = VisitCallSite(callSite, new RuntimeResolverContext
         {
             Scope     = scope,
-            CallChain = callChain
+            CallChain = (scope as ServiceProviderEngineScopeWrap)?.CallChain ?? null
         });
-        callChain.OnResolved();
         return ret;
     }
 
     protected override object? VisitCallSiteMain(ServiceCallSite callSite, RuntimeResolverContext argument)
     {
         var ret = base.VisitCallSiteMain(callSite, argument);
-        if (ret != null)
-            argument.CallChain.QueueResolved(argument.Scope, 
-                callSite.ServiceType, 
-                ret,
-                (ServiceResolveKind)callSite.Kind);
-        return ret;
+        return argument.CallChain?.RuntimePostResolve(ret, callSite) ?? ret;
     }
 
     protected override object? VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context)
@@ -94,8 +87,8 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             return value;
         }
 
-        var                        lockType              = RuntimeResolverLock.Root;
-        ServiceProviderEngineScope serviceProviderEngine = context.Scope.RootProvider.Root;
+        var                            lockType              = RuntimeResolverLock.Root;
+        IServiceProviderEngineScope serviceProviderEngine = context.Scope.RootProvider.Root;
 
         lock (callSite)
         {
@@ -215,16 +208,22 @@ internal readonly struct RuntimeResolverContext
 
     public RuntimeResolverLock AcquiredLocks { get; init; }
 
-    public required ResolveCallChain CallChain { get; init; }
+    public required ResolveCallChain? CallChain { get; init; }
 }
 
 internal class ResolveCallChain(ServiceResolvedHandler resolvedHandler)
 {
-    public void QueueResolved(IServiceProvider provider, Type serviceType, object resolved, ServiceResolveKind kind) => 
-        Resolves += () => resolvedHandler(provider, serviceType, resolved, kind);
+    public object? RuntimePostResolve(object? resolved, ServiceCallSite callSite)
+    {
+        if (resolved is null) return null;
+        var serviceType = callSite.ServiceType;
+        var kind        = (ServiceResolveKind)callSite.Kind;
+        Resolves += provider => resolvedHandler(provider, serviceType, resolved, kind);
+        return resolved;
+    }
 
-    private event Action? Resolves;
-    public void OnResolved() => Resolves?.Invoke();
+    private event Action<IServiceProvider>? Resolves;
+    public void OnResolved(IServiceProvider provider) => Resolves?.Invoke(provider);
 }
 
 [Flags]

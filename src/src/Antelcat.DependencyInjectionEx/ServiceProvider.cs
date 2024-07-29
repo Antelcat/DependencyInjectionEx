@@ -82,7 +82,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
                 }
                 catch (Exception e)
                 {
-                    exceptions ??= new List<Exception>();
+                    exceptions ??= [];
                     exceptions.Add(e);
                 }
             }
@@ -175,8 +175,10 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         ServiceAccessor serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier, createServiceAccessor);
         OnResolve(serviceAccessor.CallSite, serviceProviderEngineScope);
         DependencyInjectionEventSource.Log.ServiceResolved(this, serviceIdentifier.ServiceType);
-        var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope);
+        var     chain  = new ResolveCallChain(OnServiceResolved);
+        var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope,chain);
         object? result = serviceAccessor.RealizedService?.Invoke(wrap);
+        chain.OnResolved(serviceProviderEngineScope);
         Debug.Assert(result is null || CallSiteFactory.IsService(serviceIdentifier));
         return result;
     }
@@ -210,7 +212,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
             // Optimize singleton case
             if (callSite.Cache.Location == CallSiteResultCacheLocation.Root)
             {
-                object? value = CallSiteRuntimeResolver.Instance.Resolve(callSite, Root);
+                object? value = CallSiteRuntimeResolver.Instance.Resolve(callSite,
+                    new ServiceProviderEngineScopeWrap(Root, new ResolveCallChain(OnServiceResolved)));
                 return new ServiceAccessor { CallSite = callSite, RealizedService = scope => value };
             }
 
