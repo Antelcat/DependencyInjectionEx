@@ -4,25 +4,24 @@
 using System;
 using System.Reflection;
 
-namespace Microsoft.Extensions.Internal
+namespace Microsoft.Extensions.Internal;
+
+internal static partial class ParameterDefaultValue
 {
-    internal static partial class ParameterDefaultValue
+    public static bool CheckHasDefaultValue(ParameterInfo parameter, out bool tryToGetDefaultValue)
     {
-        public static bool CheckHasDefaultValue(ParameterInfo parameter, out bool tryToGetDefaultValue)
+        tryToGetDefaultValue = true;
+        try
         {
-            tryToGetDefaultValue = true;
-            try
-            {
-                return parameter.HasDefaultValue;
-            }
-            catch (FormatException) when (parameter.ParameterType == typeof(DateTime))
-            {
-                // Workaround for https://github.com/dotnet/runtime/issues/18844
-                // If HasDefaultValue throws FormatException for DateTime
-                // we expect it to have default value
-                tryToGetDefaultValue = false;
-                return true;
-            }
+            return parameter.HasDefaultValue;
+        }
+        catch (FormatException) when (parameter.ParameterType == typeof(DateTime))
+        {
+            // Workaround for https://github.com/dotnet/runtime/issues/18844
+            // If HasDefaultValue throws FormatException for DateTime
+            // we expect it to have default value
+            tryToGetDefaultValue = false;
+            return true;
         }
     }
 }

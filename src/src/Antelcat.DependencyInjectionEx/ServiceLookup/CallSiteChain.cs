@@ -6,32 +6,32 @@ using System.Collections.Generic;
 using System.Text;
 using Microsoft.Extensions.Internal;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
-{
-    internal sealed class CallSiteChain
-    {
-        private readonly Dictionary<ServiceIdentifier, ChainItemInfo> _callSiteChain = new();
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
-        public void CheckCircularDependency(ServiceIdentifier serviceIdentifier)
-        {
+internal sealed class CallSiteChain
+{
+    private readonly Dictionary<ServiceIdentifier, ChainItemInfo> _callSiteChain = new();
+
+    public void CheckCircularDependency(ServiceIdentifier serviceIdentifier)
+    {
             if (_callSiteChain.ContainsKey(serviceIdentifier))
             {
                 throw new InvalidOperationException(CreateCircularDependencyExceptionMessage(serviceIdentifier));
             }
         }
 
-        public void Remove(ServiceIdentifier serviceIdentifier)
-        {
+    public void Remove(ServiceIdentifier serviceIdentifier)
+    {
             _callSiteChain.Remove(serviceIdentifier);
         }
 
-        public void Add(ServiceIdentifier serviceIdentifier, Type? implementationType = null)
-        {
+    public void Add(ServiceIdentifier serviceIdentifier, Type? implementationType = null)
+    {
             _callSiteChain[serviceIdentifier] = new ChainItemInfo(_callSiteChain.Count, implementationType);
         }
 
-        private string CreateCircularDependencyExceptionMessage(ServiceIdentifier serviceIdentifier)
-        {
+    private string CreateCircularDependencyExceptionMessage(ServiceIdentifier serviceIdentifier)
+    {
             var messageBuilder = new StringBuilder();
             messageBuilder.Append(SR.Format(SR.CircularDependencyException, TypeNameHelper.GetTypeDisplayName(serviceIdentifier.ServiceType)));
             messageBuilder.AppendLine();
@@ -41,8 +41,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return messageBuilder.ToString();
         }
 
-        private void AppendResolutionPath(StringBuilder builder, ServiceIdentifier currentlyResolving)
-        {
+    private void AppendResolutionPath(StringBuilder builder, ServiceIdentifier currentlyResolving)
+    {
             var ordered = new List<KeyValuePair<ServiceIdentifier, ChainItemInfo>>(_callSiteChain);
             ordered.Sort((a, b) => a.Value.Order.CompareTo(b.Value.Order));
 
@@ -68,10 +68,9 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             builder.Append(TypeNameHelper.GetTypeDisplayName(currentlyResolving.ServiceType));
         }
 
-        private readonly struct ChainItemInfo(int order, Type? implementationType)
-        {
-            public int   Order              { get; } = order;
-            public Type? ImplementationType { get; } = implementationType;
-        }
+    private readonly struct ChainItemInfo(int order, Type? implementationType)
+    {
+        public int   Order              { get; } = order;
+        public Type? ImplementationType { get; } = implementationType;
     }
 }

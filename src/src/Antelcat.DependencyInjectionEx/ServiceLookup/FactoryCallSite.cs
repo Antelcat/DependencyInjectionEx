@@ -3,27 +3,26 @@
 
 using System;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
-{
-    internal sealed class FactoryCallSite : ServiceCallSite
-    {
-        public Func<IServiceProvider, object> Factory { get; }
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
-        public FactoryCallSite(ResultCache cache, Type serviceType, Func<IServiceProvider, object> factory) : base(cache)
-        {
+internal sealed class FactoryCallSite : ServiceCallSite
+{
+    public Func<IServiceProvider, object> Factory { get; }
+
+    public FactoryCallSite(ResultCache cache, Type serviceType, Func<IServiceProvider, object> factory) : base(cache)
+    {
             Factory = factory;
             ServiceType = serviceType;
         }
 
-        public FactoryCallSite(ResultCache cache, Type serviceType, object serviceKey, Func<IServiceProvider, object, object> factory) : base(cache)
-        {
+    public FactoryCallSite(ResultCache cache, Type serviceType, object serviceKey, Func<IServiceProvider, object, object> factory) : base(cache)
+    {
             Factory = sp => factory(sp, serviceKey);
             ServiceType = serviceType;
         }
 
-        public override Type ServiceType { get; }
-        public override Type? ImplementationType => null;
+    public override Type  ServiceType        { get; }
+    public override Type? ImplementationType => null;
 
-        public override CallSiteKind Kind { get; } = CallSiteKind.Factory;
-    }
+    public override CallSiteKind Kind { get; } = CallSiteKind.Factory;
 }

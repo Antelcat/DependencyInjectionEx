@@ -5,15 +5,14 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+internal static class ThrowHelper
 {
-    internal static class ThrowHelper
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ThrowObjectDisposedException()
     {
-        [DoesNotReturn]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static void ThrowObjectDisposedException()
-        {
             throw new ObjectDisposedException(nameof(IServiceProvider));
         }
-    }
 }

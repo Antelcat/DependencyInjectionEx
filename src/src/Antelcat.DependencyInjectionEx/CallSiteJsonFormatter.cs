@@ -5,18 +5,18 @@ using System.Collections.Generic;
 using System.Text;
 using Antelcat.DependencyInjectionEx.ServiceLookup;
 
-namespace Antelcat.DependencyInjectionEx
-{
-    internal sealed class CallSiteJsonFormatter: CallSiteVisitor<CallSiteJsonFormatter.CallSiteFormatterContext, object?>
-    {
-        internal static readonly CallSiteJsonFormatter Instance = new();
+namespace Antelcat.DependencyInjectionEx;
 
-        private CallSiteJsonFormatter()
-        {
+internal sealed class CallSiteJsonFormatter: CallSiteVisitor<CallSiteJsonFormatter.CallSiteFormatterContext, object?>
+{
+    internal static readonly CallSiteJsonFormatter Instance = new();
+
+    private CallSiteJsonFormatter()
+    {
         }
 
-        public string Format(ServiceCallSite callSite)
-        {
+    public string Format(ServiceCallSite callSite)
+    {
             var stringBuilder = new StringBuilder();
             var context = new CallSiteFormatterContext(stringBuilder, 0, []);
 
@@ -25,8 +25,8 @@ namespace Antelcat.DependencyInjectionEx
             return stringBuilder.ToString();    
         }
 
-        protected override object? VisitConstructor(ConstructorCallSite constructorCallSite, CallSiteFormatterContext argument)
-        {
+    protected override object? VisitConstructor(ConstructorCallSite constructorCallSite, CallSiteFormatterContext argument)
+    {
             argument.WriteProperty("implementationType", constructorCallSite.ImplementationType);
 
             if (constructorCallSite.ParameterCallSites.Length <= 0) return null;
@@ -43,8 +43,8 @@ namespace Antelcat.DependencyInjectionEx
             return null;
         }
 
-        protected override object? VisitCallSiteMain(ServiceCallSite callSite, CallSiteFormatterContext argument)
-        {
+    protected override object? VisitCallSiteMain(ServiceCallSite callSite, CallSiteFormatterContext argument)
+    {
             if (argument.ShouldFormat(callSite))
             {
                 CallSiteFormatterContext childContext = argument.StartObject();
@@ -67,20 +67,20 @@ namespace Antelcat.DependencyInjectionEx
             return null;
         }
 
-        protected override object? VisitConstant(ConstantCallSite constantCallSite, CallSiteFormatterContext argument)
-        {
+    protected override object? VisitConstant(ConstantCallSite constantCallSite, CallSiteFormatterContext argument)
+    {
             argument.WriteProperty("value", constantCallSite.DefaultValue ?? "");
 
             return null;
         }
 
-        protected override object? VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, CallSiteFormatterContext argument)
-        {
+    protected override object? VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, CallSiteFormatterContext argument)
+    {
             return null;
         }
 
-        protected override object? VisitIEnumerable(IEnumerableCallSite enumerableCallSite, CallSiteFormatterContext argument)
-        {
+    protected override object? VisitIEnumerable(IEnumerableCallSite enumerableCallSite, CallSiteFormatterContext argument)
+    {
             argument.WriteProperty("itemType", enumerableCallSite.ItemType);
             argument.WriteProperty("size", enumerableCallSite.ServiceCallSites.Length);
 
@@ -97,49 +97,49 @@ namespace Antelcat.DependencyInjectionEx
             return null;
         }
 
-        protected override object? VisitFactory(FactoryCallSite factoryCallSite, CallSiteFormatterContext argument)
-        {
+    protected override object? VisitFactory(FactoryCallSite factoryCallSite, CallSiteFormatterContext argument)
+    {
             argument.WriteProperty("method", factoryCallSite.Factory.Method);
 
             return null;
         }
 
-        internal struct CallSiteFormatterContext(
-            StringBuilder builder,
-            int offset,
-            HashSet<ServiceCallSite> processedCallSites)
+    internal struct CallSiteFormatterContext(
+        StringBuilder builder,
+        int offset,
+        HashSet<ServiceCallSite> processedCallSites)
+    {
+        private bool _firstItem = true;
+
+        public int           Offset  { get; } = offset;
+        public StringBuilder Builder { get; } = builder;
+
+        public bool ShouldFormat(ServiceCallSite serviceCallSite)
         {
-            private bool _firstItem = true;
-
-            public int           Offset  { get; } = offset;
-            public StringBuilder Builder { get; } = builder;
-
-            public bool ShouldFormat(ServiceCallSite serviceCallSite)
-            {
                 return processedCallSites.Add(serviceCallSite);
             }
 
-            public CallSiteFormatterContext IncrementOffset()
-            {
+        public CallSiteFormatterContext IncrementOffset()
+        {
                 return new CallSiteFormatterContext(Builder, Offset + 4, processedCallSites)
                 {
                     _firstItem = true
                 };
             }
 
-            public CallSiteFormatterContext StartObject()
-            {
+        public CallSiteFormatterContext StartObject()
+        {
                 Builder.Append('{');
                 return IncrementOffset();
             }
 
-            public void EndObject()
-            {
+        public void EndObject()
+        {
                 Builder.Append('}');
             }
 
-            public void StartProperty(string name)
-            {
+        public void StartProperty(string name)
+        {
                 if (!_firstItem)
                 {
                     Builder.Append(',');
@@ -152,8 +152,8 @@ namespace Antelcat.DependencyInjectionEx
                 Builder.Append('"').Append(name).Append("\":");
             }
 
-            public void StartArrayItem()
-            {
+        public void StartArrayItem()
+        {
                 if (!_firstItem)
                 {
                     Builder.Append(',');
@@ -164,8 +164,8 @@ namespace Antelcat.DependencyInjectionEx
                 }
             }
 
-            public void WriteProperty(string name, object? value)
-            {
+        public void WriteProperty(string name, object? value)
+        {
                 StartProperty(name);
                 if (value != null)
                 {
@@ -177,16 +177,15 @@ namespace Antelcat.DependencyInjectionEx
                 }
             }
 
-            public CallSiteFormatterContext StartArray()
-            {
+        public CallSiteFormatterContext StartArray()
+        {
                 Builder.Append('[');
                 return IncrementOffset();
             }
 
-            public void EndArray()
-            {
+        public void EndArray()
+        {
                 Builder.Append(']');
             }
-        }
     }
 }

@@ -3,12 +3,11 @@
 
 using System;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+internal sealed class ServiceProviderCallSite() : ServiceCallSite(ResultCache.None(typeof(IServiceProvider)))
 {
-    internal sealed class ServiceProviderCallSite() : ServiceCallSite(ResultCache.None(typeof(IServiceProvider)))
-    {
-        public override Type ServiceType { get; } = typeof(IServiceProvider);
-        public override Type ImplementationType { get; } = typeof(ServiceProvider);
-        public override CallSiteKind Kind { get; } = CallSiteKind.ServiceProvider;
-    }
+    public override Type         ServiceType        { get; } = typeof(IServiceProvider);
+    public override Type         ImplementationType { get; } = typeof(ServiceProvider);
+    public override CallSiteKind Kind               { get; } = CallSiteKind.ServiceProvider;
 }

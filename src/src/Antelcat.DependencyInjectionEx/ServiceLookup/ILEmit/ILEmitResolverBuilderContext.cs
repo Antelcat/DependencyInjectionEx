@@ -5,12 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+internal sealed class ILEmitResolverBuilderContext(ILGenerator generator)
 {
-    internal sealed class ILEmitResolverBuilderContext(ILGenerator generator)
-    {
-        public ILGenerator                           Generator { get; } = generator;
-        public List<object?>?                        Constants { get; set; }
-        public List<Func<IServiceProvider, object>>? Factories { get; set; }
-    }
+    public ILGenerator                           Generator { get; } = generator;
+    public List<object?>?                        Constants { get; set; }
+    public List<Func<IServiceProvider, object>>? Factories { get; set; }
 }

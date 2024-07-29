@@ -3,26 +3,25 @@
 
 using System;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+internal sealed class ConstantCallSite : ServiceCallSite
 {
-    internal sealed class ConstantCallSite : ServiceCallSite
+    private readonly Type    serviceType;
+    internal         object? DefaultValue => Value;
+
+    public ConstantCallSite(Type serviceType, object? defaultValue) : base(ResultCache.None(serviceType))
     {
-        private readonly Type serviceType;
-        internal object? DefaultValue => Value;
-
-        public ConstantCallSite(Type serviceType, object? defaultValue) : base(ResultCache.None(serviceType))
+        this.serviceType = serviceType ?? throw new ArgumentNullException(nameof(serviceType));
+        if (defaultValue != null && !serviceType.IsInstanceOfType(defaultValue))
         {
-            this.serviceType = serviceType ?? throw new ArgumentNullException(nameof(serviceType));
-            if (defaultValue != null && !serviceType.IsInstanceOfType(defaultValue))
-            {
-                throw new ArgumentException(SR.Format(SR.ConstantCantBeConvertedToServiceType, defaultValue.GetType(), serviceType));
-            }
-
-            Value = defaultValue;
+            throw new ArgumentException(SR.Format(SR.ConstantCantBeConvertedToServiceType, defaultValue.GetType(), serviceType));
         }
 
-        public override Type ServiceType => serviceType;
-        public override Type ImplementationType => DefaultValue?.GetType() ?? serviceType;
-        public override CallSiteKind Kind { get; } = CallSiteKind.Constant;
+        Value = defaultValue;
     }
+
+    public override Type         ServiceType        => serviceType;
+    public override Type         ImplementationType => DefaultValue?.GetType() ?? serviceType;
+    public override CallSiteKind Kind               { get; } = CallSiteKind.Constant;
 }

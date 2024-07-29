@@ -4,17 +4,16 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+internal sealed class RuntimeServiceProviderEngine : ServiceProviderEngine
 {
-    internal sealed class RuntimeServiceProviderEngine : ServiceProviderEngine
+    public static RuntimeServiceProviderEngine Instance { get; } = new RuntimeServiceProviderEngine();
+
+    private RuntimeServiceProviderEngine() { }
+
+    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
     {
-        public static RuntimeServiceProviderEngine Instance { get; } = new RuntimeServiceProviderEngine();
-
-        private RuntimeServiceProviderEngine() { }
-
-        public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
-        {
-            return scope => CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
-        }
+        return scope => CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
     }
 }

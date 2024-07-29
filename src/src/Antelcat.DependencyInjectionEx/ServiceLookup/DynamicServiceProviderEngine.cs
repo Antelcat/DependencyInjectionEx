@@ -6,28 +6,28 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+[method: RequiresDynamicCode("Creates DynamicMethods")]
+internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvider)
+    : CompiledServiceProviderEngine(serviceProvider)
 {
-    [method: RequiresDynamicCode("Creates DynamicMethods")]
-    internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvider)
-        : CompiledServiceProviderEngine(serviceProvider)
+    private readonly ServiceProvider _serviceProvider = serviceProvider;
+
+    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
     {
-        private readonly ServiceProvider _serviceProvider = serviceProvider;
-
-        public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
+        int callCount = 0;
+        return scope =>
         {
-            int callCount = 0;
-            return scope =>
-            {
-                // Resolve the result before we increment the call count, this ensures that singletons
-                // won't cause any side effects during the compilation of the resolve function.
-                var result = CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
+            // Resolve the result before we increment the call count, this ensures that singletons
+            // won't cause any side effects during the compilation of the resolve function.
+            var result = CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
 
-                if (Interlocked.Increment(ref callCount) == 2)
-                {
-                    // Don't capture the ExecutionContext when forking to build the compiled version of the
-                    // resolve function
-                    _ = ThreadPool.UnsafeQueueUserWorkItem(_ =>
+            if (Interlocked.Increment(ref callCount) == 2)
+            {
+                // Don't capture the ExecutionContext when forking to build the compiled version of the
+                // resolve function
+                _ = ThreadPool.UnsafeQueueUserWorkItem(_ =>
                     {
                         try
                         {
@@ -41,10 +41,9 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                         }
                     },
                     null);
-                }
+            }
 
-                return result;
-            };
-        }
+            return result;
+        };
     }
 }

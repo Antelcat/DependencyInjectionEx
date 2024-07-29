@@ -3,10 +3,9 @@
 
 using System;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+internal abstract class ServiceProviderEngine
 {
-    internal abstract class ServiceProviderEngine
-    {
-        public abstract Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite);
-    }
+    public abstract Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite);
 }

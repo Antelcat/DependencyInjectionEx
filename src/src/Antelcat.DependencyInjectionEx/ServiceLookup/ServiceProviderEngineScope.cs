@@ -9,60 +9,60 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+[DebuggerTypeProxy(typeof(ServiceProviderEngineScopeDebugView))]
+internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope) 
+    : IServiceScope, IServiceProvider, IKeyedServiceProvider, IAsyncDisposable, IServiceScopeFactory
 {
-    [DebuggerDisplay("{DebuggerToString(),nq}")]
-    [DebuggerTypeProxy(typeof(ServiceProviderEngineScopeDebugView))]
-    internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope) 
-        : IServiceScope, IServiceProvider, IKeyedServiceProvider, IAsyncDisposable, IServiceScopeFactory
+    // For testing and debugging only
+    internal IList<object> Disposables => disposables ?? (IList<object>)Array.Empty<object>();
+
+    private bool          disposed;
+    private List<object>? disposables;
+
+    internal Dictionary<ServiceCacheKey, object?> ResolvedServices { get; } = new();
+
+    internal bool Disposed => disposed;
+
+    // This lock protects state on the scope, in particular, for the root scope, it protects
+    // the list of disposable entries only, since ResolvedServices are cached on CallSites
+    // For other scopes, it protects ResolvedServices and the list of disposables
+    internal object Sync => ResolvedServices;
+
+    public bool IsRootScope { get; } = isRootScope;
+
+    internal ServiceProvider RootProvider { get; } = provider;
+
+    public object? GetService(Type serviceType)
     {
-        // For testing and debugging only
-        internal IList<object> Disposables => disposables ?? (IList<object>)Array.Empty<object>();
-
-        private bool disposed;
-        private List<object>? disposables;
-
-        internal Dictionary<ServiceCacheKey, object?> ResolvedServices { get; } = new();
-
-        internal bool Disposed => disposed;
-
-        // This lock protects state on the scope, in particular, for the root scope, it protects
-        // the list of disposable entries only, since ResolvedServices are cached on CallSites
-        // For other scopes, it protects ResolvedServices and the list of disposables
-        internal object Sync => ResolvedServices;
-
-        public bool IsRootScope { get; } = isRootScope;
-
-        internal ServiceProvider RootProvider { get; } = provider;
-
-        public object? GetService(Type serviceType)
-        {
             if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
             return RootProvider.GetService(ServiceIdentifier.FromServiceType(serviceType), this);
         }
 
-        public object? GetKeyedService(Type serviceType, object? serviceKey)
-        {
+    public object? GetKeyedService(Type serviceType, object? serviceKey)
+    {
             if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
             return RootProvider.GetKeyedService(serviceType, serviceKey, this);
         }
 
-        public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
-        {
+    public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
+    {
             if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
             return RootProvider.GetRequiredKeyedService(serviceType, serviceKey, this);
         }
 
-        public IServiceProvider ServiceProvider => this;
+    public IServiceProvider ServiceProvider => this;
 
-        public IServiceScope CreateScope() => RootProvider.CreateScope();
+    public IServiceScope CreateScope() => RootProvider.CreateScope();
 
-        [return: NotNullIfNotNull(nameof(service))]
-        internal object? CaptureDisposable(object? service)
-        {
+    [return: NotNullIfNotNull(nameof(service))]
+    internal object? CaptureDisposable(object? service)
+    {
             if (ReferenceEquals(this, service) || !(service is IDisposable || service is IAsyncDisposable))
             {
                 return service;
@@ -101,8 +101,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return service;
         }
 
-        public void Dispose()
-        {
+    public void Dispose()
+    {
             List<object>? toDispose = BeginDispose();
 
             if (toDispose == null) return;
@@ -119,8 +119,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             }
         }
 
-        public ValueTask DisposeAsync()
-        {
+    public ValueTask DisposeAsync()
+    {
             List<object>? toDispose = BeginDispose();
 
             if (toDispose == null) return default;
@@ -176,8 +176,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             }
         }
 
-        private List<object>? BeginDispose()
-        {
+    private List<object>? BeginDispose()
+    {
             lock (Sync)
             {
                 if (disposed)
@@ -209,8 +209,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return disposables;
         }
 
-        internal string DebuggerToString()
-        {
+    internal string DebuggerToString()
+    {
             string debugText = $"ServiceDescriptors = {RootProvider.CallSiteFactory.Descriptors.Length}";
             if (!IsRootScope)
             {
@@ -223,14 +223,13 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return debugText;
         }
 
-        private sealed class ServiceProviderEngineScopeDebugView(ServiceProviderEngineScope serviceProvider)
-        {
-            public List<ServiceDescriptor> ServiceDescriptors =>
-                [..serviceProvider.RootProvider.CallSiteFactory.Descriptors];
+    private sealed class ServiceProviderEngineScopeDebugView(ServiceProviderEngineScope serviceProvider)
+    {
+        public List<ServiceDescriptor> ServiceDescriptors =>
+            [..serviceProvider.RootProvider.CallSiteFactory.Descriptors];
 
-            public List<object> Disposables => [..serviceProvider.Disposables];
-            public bool         Disposed    => serviceProvider.disposed;
-            public bool         IsScope     => !serviceProvider.IsRootScope;
-        }
+        public List<object> Disposables => [..serviceProvider.Disposables];
+        public bool         Disposed    => serviceProvider.disposed;
+        public bool         IsScope     => !serviceProvider.IsRootScope;
     }
 }

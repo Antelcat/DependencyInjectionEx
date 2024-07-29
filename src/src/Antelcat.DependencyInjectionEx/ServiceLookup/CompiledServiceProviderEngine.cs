@@ -4,17 +4,16 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
+
+[method: RequiresDynamicCode("Creates DynamicMethods")]
+internal abstract class CompiledServiceProviderEngine(ServiceProvider provider) : ServiceProviderEngine
 {
-    [method: RequiresDynamicCode("Creates DynamicMethods")]
-    internal abstract class CompiledServiceProviderEngine(ServiceProvider provider) : ServiceProviderEngine
-    {
 #if IL_EMIT
-        public ILEmitResolverBuilder ResolverBuilder { get; } = new(provider);
+    public ILEmitResolverBuilder ResolverBuilder { get; } = new(provider);
 #else
         public ExpressionResolverBuilder ResolverBuilder { get; }
 #endif
 
-        public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite) => ResolverBuilder.Build(callSite);
-    }
+    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite) => ResolverBuilder.Build(callSite);
 }

@@ -6,15 +6,15 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Antelcat.DependencyInjectionEx.ServiceLookup
-{
-    internal sealed class CallSiteValidator : CallSiteVisitor<CallSiteValidator.CallSiteValidatorState, Type?>
-    {
-        // Keys are services being resolved via GetService, values - first scoped service in their call site tree
-        private readonly ConcurrentDictionary<ServiceCacheKey, Type> _scopedServices = new ConcurrentDictionary<ServiceCacheKey, Type>();
+namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
-        public void ValidateCallSite(ServiceCallSite callSite)
-        {
+internal sealed class CallSiteValidator : CallSiteVisitor<CallSiteValidator.CallSiteValidatorState, Type?>
+{
+    // Keys are services being resolved via GetService, values - first scoped service in their call site tree
+    private readonly ConcurrentDictionary<ServiceCacheKey, Type> _scopedServices = new ConcurrentDictionary<ServiceCacheKey, Type>();
+
+    public void ValidateCallSite(ServiceCallSite callSite)
+    {
             Type? scoped = VisitCallSite(callSite, default);
             if (scoped != null)
             {
@@ -22,8 +22,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             }
         }
 
-        public void ValidateResolution(ServiceCallSite callSite, IServiceScope scope, IServiceScope rootScope)
-        {
+    public void ValidateResolution(ServiceCallSite callSite, IServiceScope scope, IServiceScope rootScope)
+    {
             if (!ReferenceEquals(scope, rootScope)
                 || !_scopedServices.TryGetValue(callSite.Cache.Key, out Type? scopedService)) return;
             Type serviceType = callSite.ServiceType;
@@ -41,8 +41,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                     nameof(ServiceLifetime.Scoped).ToLowerInvariant()));
         }
 
-        protected override Type? VisitConstructor(ConstructorCallSite constructorCallSite, CallSiteValidatorState state)
-        {
+    protected override Type? VisitConstructor(ConstructorCallSite constructorCallSite, CallSiteValidatorState state)
+    {
             Type? result = null;
             foreach (ServiceCallSite parameterCallSite in constructorCallSite.ParameterCallSites)
             {
@@ -52,9 +52,9 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return result;
         }
 
-        protected override Type? VisitIEnumerable(IEnumerableCallSite enumerableCallSite,
-            CallSiteValidatorState state)
-        {
+    protected override Type? VisitIEnumerable(IEnumerableCallSite enumerableCallSite,
+        CallSiteValidatorState state)
+    {
             Type? result = null;
             foreach (ServiceCallSite serviceCallSite in enumerableCallSite.ServiceCallSites)
             {
@@ -64,14 +64,14 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return result;
         }
 
-        protected override Type? VisitRootCache(ServiceCallSite singletonCallSite, CallSiteValidatorState state)
-        {
+    protected override Type? VisitRootCache(ServiceCallSite singletonCallSite, CallSiteValidatorState state)
+    {
             state.Singleton = singletonCallSite;
             return VisitCallSiteMain(singletonCallSite, state);
         }
 
-        protected override Type? VisitScopeCache(ServiceCallSite scopedCallSite, CallSiteValidatorState state)
-        {
+    protected override Type? VisitScopeCache(ServiceCallSite scopedCallSite, CallSiteValidatorState state)
+    {
             // We are fine with having ServiceScopeService requested by singletons
             if (scopedCallSite.ServiceType == typeof(IServiceScopeFactory))
             {
@@ -91,16 +91,15 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return scopedCallSite.ServiceType;
         }
 
-        protected override Type? VisitConstant(ConstantCallSite constantCallSite, CallSiteValidatorState state) => null;
+    protected override Type? VisitConstant(ConstantCallSite constantCallSite, CallSiteValidatorState state) => null;
 
-        protected override Type? VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, CallSiteValidatorState state) => null;
+    protected override Type? VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, CallSiteValidatorState state) => null;
 
-        protected override Type? VisitFactory(FactoryCallSite factoryCallSite, CallSiteValidatorState state) => null;
+    protected override Type? VisitFactory(FactoryCallSite factoryCallSite, CallSiteValidatorState state) => null;
 
-        internal struct CallSiteValidatorState
-        {
-            [DisallowNull]
-            public ServiceCallSite? Singleton { get; set; }
-        }
+    internal struct CallSiteValidatorState
+    {
+        [DisallowNull]
+        public ServiceCallSite? Singleton { get; set; }
     }
 }

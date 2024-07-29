@@ -6,14 +6,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Microsoft.Extensions.Internal
+namespace Microsoft.Extensions.Internal;
+
+internal static partial class ParameterDefaultValue
 {
-    internal static partial class ParameterDefaultValue
+    public static bool CheckHasDefaultValue(ParameterInfo parameter, out bool tryToGetDefaultValue)
     {
-        public static bool CheckHasDefaultValue(ParameterInfo parameter, out bool tryToGetDefaultValue)
-        {
             tryToGetDefaultValue = true;
             return parameter.HasDefaultValue;
         }
-    }
 }
