@@ -13,7 +13,7 @@ public class Tests
         provider = new ServiceCollection()
             .AddSingleton(typeof(IA), typeof(A))
             .AddScoped<IB, B>()
-            //.AddKeyedScoped(typeof(IB), nameof(IB), typeof(B))
+            .AddKeyedScoped(typeof(IB), nameof(IB), typeof(B))
             .AddTransient<IC, C>()
             .AddTransient(typeof(D))
             .BuildAutowiredServiceProviderEx();
@@ -82,7 +82,7 @@ public interface IA;
 
 public class A : IA
 {
-   //[Autowired] public B C { get; set; }
+   [Autowired] public B C { get; set; }
 }
 
 public interface IB;
@@ -92,29 +92,29 @@ public class B(IA a) : IB;
 public interface IC;
 public class C(IB b) : IC
 {
-    /*[Autowired(typeof(IB), Key = nameof(IB))]
+    [Autowired(typeof(IB), Key = nameof(IB))]
     public B B { get; set; }
 
     [Autowired(typeof(IB), Key = nameof(IB), GetServices = true)]
-    public IEnumerable<IB> BS { get; set; }*/
+    public IEnumerable<IB> BS { get; set; }
 }
 
 public class D(IC c) : IDisposable
 {
-    /*[Autowired(typeof(IA))]
+    [Autowired(typeof(IA))]
     public A A { get; set; }
 
     [Autowired(typeof(IB), Key = nameof(IB), GetServices = true)]
     public IEnumerable<IB> BS { get; set; }
     
     [Autowired]
-    public IC C { get; set; }*/
+    public IC C { get; set; }
 
     public void Check(int count)
     {
-        /*Assert.NotNull(A);
+        Assert.NotNull(A);
         Assert.IsNotEmpty(BS);
-        Assert.NotNull(C, $"{count} C is null");*/
+        Assert.NotNull(C, $"{count} C is null");
     }
 
     public void Dispose()
