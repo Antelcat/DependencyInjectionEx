@@ -261,7 +261,7 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
 internal sealed class ServiceProviderEngineScopeWrap(ServiceProviderEngineScope scope, ResolveCallChain callChain) : IServiceProviderEngineScope
 {
     internal IServiceProvider Scope     => scope;
-    internal ResolveCallChain CallChain { get; } = callChain;
+    public ResolveCallChain CallChain { get; } = callChain;
     
     public void Dispose() => scope.Dispose();
 

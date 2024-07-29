@@ -30,8 +30,15 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
     private static readonly MethodInfo CallSiteRuntimeResolverInstanceField = typeof(CallSiteRuntimeResolver).GetProperty(
         nameof(CallSiteRuntimeResolver.Instance), BindingFlags.Static | BindingFlags.Public | BindingFlags.Instance)!.GetMethod!;
 
+    private static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap).GetProperty(
+        nameof(ServiceProviderEngineScopeWrap.CallChain), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
+
+    private static readonly MethodInfo ILPostResolve = typeof(ResolveCallChain).GetMethod(
+        nameof(ResolveCallChain.ILPostResolve), BindingFlags.Public | BindingFlags.Instance)!;
+    
     private static readonly FieldInfo FactoriesField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Factories))!;
     private static readonly FieldInfo ConstantsField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Constants))!;
+    private static readonly FieldInfo CallSitesField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.CallSites))!;
     private static readonly MethodInfo GetTypeFromHandleMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
 
     private static readonly ConstructorInfo CacheKeyCtor = typeof(ServiceCacheKey).GetConstructors()[0];
@@ -40,6 +47,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
     {
         public object?[]?                        Constants;
         public Func<IServiceProvider, object>[]? Factories;
+        public ServiceCallSite[]?                CallSites;
     }
 
     private struct GeneratedMethod
@@ -90,7 +98,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
             attributes: MethodAttributes.Public | MethodAttributes.Static,
             callingConvention: CallingConventions.Standard,
             returnType: typeof(object),
-            parameterTypes: [typeof(ILEmitResolverBuilderRuntimeContext), typeof(IServiceProviderEngineScope)],
+            parameterTypes: [typeof(ILEmitResolverBuilderRuntimeContext), typeof(ServiceProviderEngineScopeWrap)],
             owner: GetType(),
             skipVisibility: true);
 
@@ -259,7 +267,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
 
     private static void AddConstant(ILEmitResolverBuilderContext argument, object? value)
     {
-        argument.Constants ??= new List<object?>();
+        argument.Constants ??= [];
 
         // this.Constants[i]
         argument.Generator.Emit(OpCodes.Ldarg_0);
@@ -268,6 +276,19 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
         argument.Generator.Emit(OpCodes.Ldc_I4, argument.Constants.Count);
         argument.Generator.Emit(OpCodes.Ldelem, typeof(object));
         argument.Constants.Add(value);
+    }
+    
+    private static void AddCallSite(ILEmitResolverBuilderContext argument, ServiceCallSite callSite)
+    {
+        argument.CallSites ??= [];
+
+        // this.CallSites[i]
+        argument.Generator.Emit(OpCodes.Ldarg_0);
+        argument.Generator.Emit(OpCodes.Ldfld, CallSitesField);
+
+        argument.Generator.Emit(OpCodes.Ldc_I4, argument.CallSites.Count);
+        argument.Generator.Emit(OpCodes.Ldelem, typeof(ServiceCallSite));
+        argument.CallSites.Add(callSite);
     }
 
     private static void AddCacheKey(ILEmitResolverBuilderContext argument, ServiceCacheKey key)
@@ -437,8 +458,16 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
         return new ILEmitResolverBuilderRuntimeContext
         {
             Constants = context.Constants?.ToArray(),
-            Factories = context.Factories?.ToArray()
+            Factories = context.Factories?.ToArray(),
+            CallSites = context.CallSites?.ToArray()
         };
+    }
+
+    protected override object? VisitCallSiteMain(ServiceCallSite callSite, ILEmitResolverBuilderContext argument)
+    {
+        base.VisitCallSiteMain(callSite, argument);
+        PostResolve(argument, callSite);
+        return null;
     }
 
     private static void BeginCaptureDisposable(ILEmitResolverBuilderContext argument)
@@ -451,4 +480,27 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
         // When calling CaptureDisposable we expect callee and arguments to be on the stackcontext.Generator.BeginExceptionBlock
         argument.Generator.Emit(OpCodes.Callvirt, ServiceLookupHelpers.CaptureDisposableMethodInfo);
     }
+
+    private static void PostResolve(ILEmitResolverBuilderContext context, ServiceCallSite callSite)
+    {
+        var localBuilder = context.Generator.DeclareLocal(typeof(object));
+        context.Generator.Emit(OpCodes.Stloc, localBuilder); //store in local
+        context.Generator.Emit(OpCodes.Ldarg_1);             //load wrap
+        context.Generator.Emit(OpCodes.Callvirt, CallChain); // get call chain
+        context.Generator.Emit(OpCodes.Ldloc, localBuilder);
+        AddCallSite(context, callSite);
+        context.Generator.Emit(OpCodes.Callvirt, ILPostResolve);
+    }
 }
+
+partial class ResolveCallChain
+{
+    public object? ILPostResolve(object? resolved, ServiceCallSite callSite)
+    {
+        if (resolved is null) return null;
+        var serviceType = callSite.ServiceType;
+        var kind        = (ServiceResolveKind)callSite.Kind;
+        Resolves += provider => resolvedHandler(provider, serviceType, resolved, kind);
+        return resolved;
+    }
+} 

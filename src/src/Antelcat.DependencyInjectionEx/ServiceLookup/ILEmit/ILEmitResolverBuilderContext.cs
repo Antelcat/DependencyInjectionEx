@@ -12,4 +12,5 @@ internal sealed class ILEmitResolverBuilderContext(ILGenerator generator)
     public ILGenerator                           Generator { get; } = generator;
     public List<object?>?                        Constants { get; set; }
     public List<Func<IServiceProvider, object>>? Factories { get; set; }
+    public List<ServiceCallSite>?                CallSites { get; set; }
 }
