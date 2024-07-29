@@ -213,13 +213,13 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
                 return new ServiceAccessor { CallSite = callSite, RealizedService = scope => value };
             }
 
-            Func<ServiceProviderEngineScope, object?> realizedService = Engine.RealizeService(callSite);
+            ServiceResolveHandler realizedService = Engine.RealizeService(callSite);
             return new ServiceAccessor { CallSite = callSite, RealizedService = realizedService };
         }
         return new ServiceAccessor { CallSite = callSite, RealizedService = _ => null };
     }
 
-    internal void ReplaceServiceAccessor(ServiceCallSite callSite, Func<ServiceProviderEngineScope, object?> accessor)
+    internal void ReplaceServiceAccessor(ServiceCallSite callSite, ServiceResolveHandler accessor)
     {
         serviceAccessors[new ServiceIdentifier(callSite.Key, callSite.ServiceType)] = new ServiceAccessor
         {
@@ -276,6 +276,6 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
     private sealed class ServiceAccessor
     {
         public ServiceCallSite?                           CallSite        { get; set; }
-        public Func<ServiceProviderEngineScope, object?>? RealizedService { get; set; }
+        public ServiceResolveHandler? RealizedService { get; set; }
     }
 }

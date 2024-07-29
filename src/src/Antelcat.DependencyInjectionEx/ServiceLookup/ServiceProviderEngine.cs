@@ -7,5 +7,5 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 internal abstract class ServiceProviderEngine
 {
-    public abstract Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite);
+    public abstract ServiceResolveHandler RealizeService(ServiceCallSite callSite);
 }

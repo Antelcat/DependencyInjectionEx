@@ -44,7 +44,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
 
     private struct GeneratedMethod
     {
-        public Func<ServiceProviderEngineScope, object?> Lambda;
+        public ServiceResolveHandler Lambda;
 
         public ILEmitResolverBuilderRuntimeContext Context;
         public DynamicMethod                       DynamicMethod;
@@ -63,7 +63,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
         _buildTypeDelegate  = (key, cs) => BuildTypeNoCache(cs);
     }
 
-    public Func<ServiceProviderEngineScope, object?> Build(ServiceCallSite callSite)
+    public ServiceResolveHandler Build(ServiceCallSite callSite)
     {
         return BuildType(callSite).Lambda;
     }
@@ -121,7 +121,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
 
         return new GeneratedMethod
         {
-            Lambda = (Func<ServiceProviderEngineScope, object?>)dynamicMethod.CreateDelegate(typeof(Func<ServiceProviderEngineScope, object?>), runtimeContext),
+            Lambda = (ServiceResolveHandler)dynamicMethod.CreateDelegate(typeof(ServiceResolveHandler), runtimeContext),
             Context = runtimeContext,
             DynamicMethod = dynamicMethod
         };

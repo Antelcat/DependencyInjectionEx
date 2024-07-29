@@ -12,7 +12,7 @@ internal sealed class RuntimeServiceProviderEngine : ServiceProviderEngine
 
     private RuntimeServiceProviderEngine() { }
 
-    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
     {
         return scope => CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
     }

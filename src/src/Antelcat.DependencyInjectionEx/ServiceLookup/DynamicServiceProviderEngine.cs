@@ -14,7 +14,7 @@ internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvid
 {
     private readonly ServiceProvider _serviceProvider = serviceProvider;
 
-    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
     {
         int callCount = 0;
         return scope =>

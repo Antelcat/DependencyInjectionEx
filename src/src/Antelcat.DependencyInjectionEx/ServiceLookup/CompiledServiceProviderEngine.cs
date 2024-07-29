@@ -15,5 +15,5 @@ internal abstract class CompiledServiceProviderEngine(ServiceProvider provider) 
         public ExpressionResolverBuilder ResolverBuilder { get; }
 #endif
 
-    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite) => ResolverBuilder.Build(callSite);
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite) => ResolverBuilder.Build(callSite);
 }

@@ -11,7 +11,7 @@ internal sealed class ILEmitServiceProviderEngine(ServiceProvider serviceProvide
 {
     private readonly ILEmitResolverBuilder expressionResolverBuilder = new(serviceProvider);
 
-    public override Func<ServiceProviderEngineScope, object?> RealizeService(ServiceCallSite callSite)
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
     {
         return expressionResolverBuilder.Build(callSite);
     }
