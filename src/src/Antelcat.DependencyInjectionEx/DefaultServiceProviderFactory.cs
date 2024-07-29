@@ -19,8 +19,7 @@ public class DefaultServiceProviderFactory : IServiceProviderFactory<IServiceCol
     /// </summary>
     public DefaultServiceProviderFactory() : this(ServiceProviderOptions.Default)
     {
-
-        }
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultServiceProviderFactory"/> class
@@ -29,18 +28,18 @@ public class DefaultServiceProviderFactory : IServiceProviderFactory<IServiceCol
     /// <param name="options">The options to use for this instance.</param>
     public DefaultServiceProviderFactory(ServiceProviderOptions options)
     {
-            this.options = options ?? throw new ArgumentNullException(nameof(options));
-        }
+        this.options = options ?? throw new ArgumentNullException(nameof(options));
+    }
 
     /// <inheritdoc />
     public IServiceCollection CreateBuilder(IServiceCollection services)
     {
-            return services;
-        }
+        return services;
+    }
 
     /// <inheritdoc />
     public IServiceProvider CreateServiceProvider(IServiceCollection containerBuilder)
     {
-            return containerBuilder.BuildServiceProviderEx(options);
-        }
+        return containerBuilder.BuildServiceProviderEx(options);
+    }
 }

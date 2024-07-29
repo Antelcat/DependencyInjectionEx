@@ -30,8 +30,10 @@ internal static class ServiceLookupHelpers
         .GetMethod(nameof(IDictionary<ServiceCacheKey, object>.Add), LookupFlags)!;
 
     internal static readonly MethodInfo MonitorEnterMethodInfo = typeof(Monitor)
-        .GetMethod(nameof(Monitor.Enter), BindingFlags.Public | BindingFlags.Static, null, [typeof(object), typeof(bool).MakeByRefType()
+        .GetMethod(nameof(Monitor.Enter), BindingFlags.Public | BindingFlags.Static, null, [
+            typeof(object), typeof(bool).MakeByRefType()
         ], null)!;
+
     internal static readonly MethodInfo MonitorExitMethodInfo = typeof(Monitor)
         .GetMethod(nameof(Monitor.Exit), BindingFlags.Public | BindingFlags.Static, null, [typeof(object)], null)!;
 

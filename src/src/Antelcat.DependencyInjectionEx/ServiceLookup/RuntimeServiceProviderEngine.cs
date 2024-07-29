@@ -8,12 +8,10 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 internal sealed class RuntimeServiceProviderEngine : ServiceProviderEngine
 {
-    public static RuntimeServiceProviderEngine Instance { get; } = new RuntimeServiceProviderEngine();
+    public static RuntimeServiceProviderEngine Instance { get; } = new();
 
     private RuntimeServiceProviderEngine() { }
 
-    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
-    {
-        return scope => CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
-    }
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite) => 
+        scope => CallSiteRuntimeResolver.Instance.Resolve(callSite, scope);
 }

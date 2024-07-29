@@ -11,35 +11,36 @@ internal struct ResultCache
 {
     public static ResultCache None(Type serviceType)
     {
-            var cacheKey = new ServiceCacheKey(ServiceIdentifier.FromServiceType(serviceType), 0);
-            return new ResultCache(CallSiteResultCacheLocation.None, cacheKey);
-        }
+        var cacheKey = new ServiceCacheKey(ServiceIdentifier.FromServiceType(serviceType), 0);
+        return new ResultCache(CallSiteResultCacheLocation.None, cacheKey);
+    }
 
     internal ResultCache(CallSiteResultCacheLocation lifetime, ServiceCacheKey cacheKey)
     {
-            Location = lifetime;
-            Key = cacheKey;
-        }
+        Location = lifetime;
+        Key      = cacheKey;
+    }
 
     public ResultCache(ServiceLifetime lifetime, ServiceIdentifier serviceIdentifier, int slot)
     {
-            switch (lifetime)
-            {
-                case ServiceLifetime.Singleton:
-                    Location = CallSiteResultCacheLocation.Root;
-                    break;
-                case ServiceLifetime.Scoped:
-                    Location = CallSiteResultCacheLocation.Scope;
-                    break;
-                case ServiceLifetime.Transient:
-                    Location = CallSiteResultCacheLocation.Dispose;
-                    break;
-                default:
-                    Location = CallSiteResultCacheLocation.None;
-                    break;
-            }
-            Key = new ServiceCacheKey(serviceIdentifier, slot);
+        switch (lifetime)
+        {
+            case ServiceLifetime.Singleton:
+                Location = CallSiteResultCacheLocation.Root;
+                break;
+            case ServiceLifetime.Scoped:
+                Location = CallSiteResultCacheLocation.Scope;
+                break;
+            case ServiceLifetime.Transient:
+                Location = CallSiteResultCacheLocation.Dispose;
+                break;
+            default:
+                Location = CallSiteResultCacheLocation.None;
+                break;
         }
+
+        Key = new ServiceCacheKey(serviceIdentifier, slot);
+    }
 
     public CallSiteResultCacheLocation Location { get; set; }
 

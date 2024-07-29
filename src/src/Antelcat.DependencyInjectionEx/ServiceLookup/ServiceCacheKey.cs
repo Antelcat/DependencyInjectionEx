@@ -28,15 +28,15 @@ internal readonly struct ServiceCacheKey : IEquatable<ServiceCacheKey>
 
     public ServiceCacheKey(object key, Type type, int slot)
     {
-            ServiceIdentifier = new ServiceIdentifier(key, type);
-            Slot = slot;
-        }
+        ServiceIdentifier = new ServiceIdentifier(key, type);
+        Slot              = slot;
+    }
 
     public ServiceCacheKey(ServiceIdentifier type, int slot)
     {
-            ServiceIdentifier = type;
-            Slot = slot;
-        }
+        ServiceIdentifier = type;
+        Slot              = slot;
+    }
 
     /// <summary>Indicates whether the current instance is equal to another instance of the same type.</summary>
     /// <param name="other">An instance to compare with this instance.</param>
@@ -49,9 +49,9 @@ internal readonly struct ServiceCacheKey : IEquatable<ServiceCacheKey>
 
     public override int GetHashCode()
     {
-            unchecked
-            {
-                return (ServiceIdentifier.GetHashCode() * 397) ^ Slot;
-            }
+        unchecked
+        {
+            return (ServiceIdentifier.GetHashCode() * 397) ^ Slot;
         }
+    }
 }

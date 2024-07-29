@@ -7,102 +7,107 @@ using Antelcat.DependencyInjectionEx.ServiceLookup;
 
 namespace Antelcat.DependencyInjectionEx;
 
-internal sealed class CallSiteJsonFormatter: CallSiteVisitor<CallSiteJsonFormatter.CallSiteFormatterContext, object?>
+internal sealed class CallSiteJsonFormatter : CallSiteVisitor<CallSiteJsonFormatter.CallSiteFormatterContext, object?>
 {
     internal static readonly CallSiteJsonFormatter Instance = new();
 
     private CallSiteJsonFormatter()
     {
-        }
+    }
 
     public string Format(ServiceCallSite callSite)
     {
-            var stringBuilder = new StringBuilder();
-            var context = new CallSiteFormatterContext(stringBuilder, 0, []);
+        var stringBuilder = new StringBuilder();
+        var context       = new CallSiteFormatterContext(stringBuilder, 0, []);
 
-            VisitCallSite(callSite, context);
+        VisitCallSite(callSite, context);
 
-            return stringBuilder.ToString();    
-        }
+        return stringBuilder.ToString();
+    }
 
-    protected override object? VisitConstructor(ConstructorCallSite constructorCallSite, CallSiteFormatterContext argument)
+    protected override object? VisitConstructor(ConstructorCallSite constructorCallSite,
+        CallSiteFormatterContext argument)
     {
-            argument.WriteProperty("implementationType", constructorCallSite.ImplementationType);
+        argument.WriteProperty("implementationType", constructorCallSite.ImplementationType);
 
-            if (constructorCallSite.ParameterCallSites.Length <= 0) return null;
-            argument.StartProperty("arguments");
+        if (constructorCallSite.ParameterCallSites.Length <= 0) return null;
+        argument.StartProperty("arguments");
 
-            CallSiteFormatterContext childContext = argument.StartArray();
-            foreach (ServiceCallSite parameter in constructorCallSite.ParameterCallSites)
-            {
-                childContext.StartArrayItem();
-                VisitCallSite(parameter, childContext);
-            }
-            argument.EndArray();
-
-            return null;
+        CallSiteFormatterContext childContext = argument.StartArray();
+        foreach (ServiceCallSite parameter in constructorCallSite.ParameterCallSites)
+        {
+            childContext.StartArrayItem();
+            VisitCallSite(parameter, childContext);
         }
+
+        argument.EndArray();
+
+        return null;
+    }
 
     protected override object? VisitCallSiteMain(ServiceCallSite callSite, CallSiteFormatterContext argument)
     {
-            if (argument.ShouldFormat(callSite))
-            {
-                CallSiteFormatterContext childContext = argument.StartObject();
+        if (argument.ShouldFormat(callSite))
+        {
+            CallSiteFormatterContext childContext = argument.StartObject();
 
-                childContext.WriteProperty("serviceType", callSite.ServiceType);
-                childContext.WriteProperty("kind", callSite.Kind);
-                childContext.WriteProperty("cache", callSite.Cache.Location);
+            childContext.WriteProperty("serviceType", callSite.ServiceType);
+            childContext.WriteProperty("kind", callSite.Kind);
+            childContext.WriteProperty("cache", callSite.Cache.Location);
 
-                base.VisitCallSiteMain(callSite, childContext);
+            base.VisitCallSiteMain(callSite, childContext);
 
-                argument.EndObject();
-            }
-            else
-            {
-                CallSiteFormatterContext childContext = argument.StartObject();
-                childContext.WriteProperty("ref", callSite.ServiceType);
-                argument.EndObject();
-            }
-
-            return null;
+            argument.EndObject();
         }
+        else
+        {
+            CallSiteFormatterContext childContext = argument.StartObject();
+            childContext.WriteProperty("ref", callSite.ServiceType);
+            argument.EndObject();
+        }
+
+        return null;
+    }
 
     protected override object? VisitConstant(ConstantCallSite constantCallSite, CallSiteFormatterContext argument)
     {
-            argument.WriteProperty("value", constantCallSite.DefaultValue ?? "");
+        argument.WriteProperty("value", constantCallSite.DefaultValue ?? "");
 
-            return null;
-        }
+        return null;
+    }
 
-    protected override object? VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, CallSiteFormatterContext argument)
+    protected override object? VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite,
+        CallSiteFormatterContext argument)
     {
-            return null;
-        }
+        return null;
+    }
 
-    protected override object? VisitIEnumerable(IEnumerableCallSite enumerableCallSite, CallSiteFormatterContext argument)
+    protected override object? VisitIEnumerable(IEnumerableCallSite enumerableCallSite,
+        CallSiteFormatterContext argument)
     {
-            argument.WriteProperty("itemType", enumerableCallSite.ItemType);
-            argument.WriteProperty("size", enumerableCallSite.ServiceCallSites.Length);
+        argument.WriteProperty("itemType", enumerableCallSite.ItemType);
+        argument.WriteProperty("size", enumerableCallSite.ServiceCallSites.Length);
 
-            if (enumerableCallSite.ServiceCallSites.Length <= 0) return null;
-            argument.StartProperty("items");
+        if (enumerableCallSite.ServiceCallSites.Length <= 0) return null;
+        argument.StartProperty("items");
 
-            CallSiteFormatterContext childContext = argument.StartArray();
-            foreach (ServiceCallSite item in enumerableCallSite.ServiceCallSites)
-            {
-                childContext.StartArrayItem();
-                VisitCallSite(item, childContext);
-            }
-            argument.EndArray();
-            return null;
+        CallSiteFormatterContext childContext = argument.StartArray();
+        foreach (ServiceCallSite item in enumerableCallSite.ServiceCallSites)
+        {
+            childContext.StartArrayItem();
+            VisitCallSite(item, childContext);
         }
+
+        argument.EndArray();
+        return null;
+    }
 
     protected override object? VisitFactory(FactoryCallSite factoryCallSite, CallSiteFormatterContext argument)
     {
-            argument.WriteProperty("method", factoryCallSite.Factory.Method);
+        argument.WriteProperty("method", factoryCallSite.Factory.Method);
 
-            return null;
-        }
+        return null;
+    }
 
     internal struct CallSiteFormatterContext(
         StringBuilder builder,
@@ -116,76 +121,76 @@ internal sealed class CallSiteJsonFormatter: CallSiteVisitor<CallSiteJsonFormatt
 
         public bool ShouldFormat(ServiceCallSite serviceCallSite)
         {
-                return processedCallSites.Add(serviceCallSite);
-            }
+            return processedCallSites.Add(serviceCallSite);
+        }
 
         public CallSiteFormatterContext IncrementOffset()
         {
-                return new CallSiteFormatterContext(Builder, Offset + 4, processedCallSites)
-                {
-                    _firstItem = true
-                };
-            }
+            return new CallSiteFormatterContext(Builder, Offset + 4, processedCallSites)
+            {
+                _firstItem = true
+            };
+        }
 
         public CallSiteFormatterContext StartObject()
         {
-                Builder.Append('{');
-                return IncrementOffset();
-            }
+            Builder.Append('{');
+            return IncrementOffset();
+        }
 
         public void EndObject()
         {
-                Builder.Append('}');
-            }
+            Builder.Append('}');
+        }
 
         public void StartProperty(string name)
         {
-                if (!_firstItem)
-                {
-                    Builder.Append(',');
-                }
-                else
-                {
-                    _firstItem = false;
-                }
-
-                Builder.Append('"').Append(name).Append("\":");
+            if (!_firstItem)
+            {
+                Builder.Append(',');
             }
+            else
+            {
+                _firstItem = false;
+            }
+
+            Builder.Append('"').Append(name).Append("\":");
+        }
 
         public void StartArrayItem()
         {
-                if (!_firstItem)
-                {
-                    Builder.Append(',');
-                }
-                else
-                {
-                    _firstItem = false;
-                }
+            if (!_firstItem)
+            {
+                Builder.Append(',');
             }
+            else
+            {
+                _firstItem = false;
+            }
+        }
 
         public void WriteProperty(string name, object? value)
         {
-                StartProperty(name);
-                if (value != null)
-                {
-                    Builder.Append(" \"").Append(value).Append('"');
-                }
-                else
-                {
-                    Builder.Append( "null");
-                }
+            StartProperty(name);
+            if (value != null)
+            {
+                Builder.Append(" \"").Append(value).Append('"');
             }
+            else
+            {
+                Builder.Append("null");
+            }
+        }
 
         public CallSiteFormatterContext StartArray()
         {
-                Builder.Append('[');
-                return IncrementOffset();
-            }
+            Builder.Append('[');
+            return IncrementOffset();
+        }
 
         public void EndArray()
         {
-                Builder.Append(']');
-            }
+            Builder.Append(']');
+        }
     }
 }

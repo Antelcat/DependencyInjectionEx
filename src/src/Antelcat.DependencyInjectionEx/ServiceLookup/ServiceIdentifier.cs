@@ -36,17 +36,12 @@ internal readonly struct ServiceIdentifier(object? serviceKey, Type serviceType)
         return false;
     }
 
-    public override bool Equals([NotNullWhen(true)] object? obj)
-    {
-        return obj is ServiceIdentifier && Equals((ServiceIdentifier)obj);
-    }
+    public override bool Equals([NotNullWhen(true)] object? obj) => 
+        obj is ServiceIdentifier identifier && Equals(identifier);
 
     public override int GetHashCode()
     {
-        if (ServiceKey == null)
-        {
-            return ServiceType.GetHashCode();
-        }
+        if (ServiceKey == null) return ServiceType.GetHashCode();
         unchecked
         {
             return (ServiceType.GetHashCode() * 397) ^ ServiceKey.GetHashCode();
@@ -55,15 +50,7 @@ internal readonly struct ServiceIdentifier(object? serviceKey, Type serviceType)
 
     public bool IsConstructedGenericType => ServiceType.IsConstructedGenericType;
 
-    public ServiceIdentifier GetGenericTypeDefinition() => new ServiceIdentifier(ServiceKey, ServiceType.GetGenericTypeDefinition());
+    public ServiceIdentifier GetGenericTypeDefinition() => new(ServiceKey, ServiceType.GetGenericTypeDefinition());
 
-    public override string? ToString()
-    {
-        if (ServiceKey == null)
-        {
-            return ServiceType.ToString();
-        }
-
-        return $"({ServiceKey}, {ServiceType})";
-    }
+    public override string? ToString() => ServiceKey == null ? ServiceType.ToString() : $"({ServiceKey}, {ServiceType})";
 }
