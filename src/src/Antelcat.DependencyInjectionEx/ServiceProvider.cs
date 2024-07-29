@@ -175,7 +175,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         ServiceAccessor serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier, createServiceAccessor);
         OnResolve(serviceAccessor.CallSite, serviceProviderEngineScope);
         DependencyInjectionEventSource.Log.ServiceResolved(this, serviceIdentifier.ServiceType);
-        object? result = serviceAccessor.RealizedService?.Invoke(serviceProviderEngineScope);
+        var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope);
+        object? result = serviceAccessor.RealizedService?.Invoke(wrap);
         Debug.Assert(result is null || CallSiteFactory.IsService(serviceIdentifier));
         return result;
     }

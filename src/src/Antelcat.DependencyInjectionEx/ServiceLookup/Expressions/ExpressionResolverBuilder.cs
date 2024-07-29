@@ -14,23 +14,31 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expression>
 {
-    private static readonly ParameterExpression ScopeParameter = Expression.Parameter(typeof(ServiceProviderEngineScope));
+    private static readonly ParameterExpression ScopeParameter =
+        Expression.Parameter(typeof(IServiceProviderEngineScope));
 
-    private static readonly ParameterExpression ResolvedServices = Expression.Variable(typeof(IDictionary<ServiceCacheKey, object>), ScopeParameter.Name + "resolvedServices");
-    private static readonly ParameterExpression Sync = Expression.Variable(typeof(object), ScopeParameter.Name + "sync");
+    private static readonly ParameterExpression ResolvedServices =
+        Expression.Variable(typeof(IDictionary<ServiceCacheKey, object>), ScopeParameter.Name + "resolvedServices");
+
+    private static readonly ParameterExpression
+        Sync = Expression.Variable(typeof(object), ScopeParameter.Name + "sync");
+
     private static readonly BinaryExpression ResolvedServicesVariableAssignment =
         Expression.Assign(ResolvedServices,
             Expression.Property(
                 ScopeParameter,
-                typeof(ServiceProviderEngineScope).GetProperty(nameof(ServiceProviderEngineScope.ResolvedServices), BindingFlags.Instance | BindingFlags.NonPublic)!));
+                typeof(IServiceProviderEngineScope).GetProperty(nameof(IServiceProviderEngineScope.ResolvedServices),
+                    BindingFlags.Instance | BindingFlags.NonPublic)!));
 
     private static readonly BinaryExpression SyncVariableAssignment =
         Expression.Assign(Sync,
             Expression.Property(
                 ScopeParameter,
-                typeof(ServiceProviderEngineScope).GetProperty(nameof(ServiceProviderEngineScope.Sync), BindingFlags.Instance | BindingFlags.NonPublic)!));
+                typeof(IServiceProviderEngineScope).GetProperty(nameof(IServiceProviderEngineScope.Sync),
+                    BindingFlags.Instance | BindingFlags.NonPublic)!));
 
     private static readonly ParameterExpression CaptureDisposableParameter = Expression.Parameter(typeof(object));
+
     private static readonly LambdaExpression CaptureDisposable = Expression.Lambda(
         Expression.Call(ScopeParameter, ServiceLookupHelpers.CaptureDisposableMethodInfo, CaptureDisposableParameter),
         CaptureDisposableParameter);
@@ -70,7 +78,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
     public ServiceResolveHandler BuildNoCache(ServiceCallSite callSite)
     {
         Expression<ServiceResolveHandler> expression = BuildExpression(callSite);
-        DependencyInjectionEventSource.Log.ExpressionTreeGenerated(rootScope.RootProvider, callSite.ServiceType, expression);
+        DependencyInjectionEventSource.Log.ExpressionTreeGenerated(rootScope.RootProvider, callSite.ServiceType,
+            expression);
         return expression.Compile();
     }
 
@@ -118,7 +127,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             Justification = "VerifyAotCompatibility ensures elementType is not a ValueType")]
         static MethodInfo GetArrayEmptyMethodInfo(Type elementType)
         {
-            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType, "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
+            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType,
+                "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
 
             return ServiceLookupHelpers.GetArrayEmptyMethodInfo(elementType);
         }
@@ -127,7 +137,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             Justification = "VerifyAotCompatibility ensures elementType is not a ValueType")]
         static NewArrayExpression NewArrayInit(Type elementType, IEnumerable<Expression> expr)
         {
-            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType, "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
+            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType,
+                "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
 
             return Expression.NewArrayInit(elementType, expr);
         }
@@ -156,7 +167,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             VisitCallSiteMain(callSite, context));
     }
 
-    private static Expression TryCaptureDisposable(ServiceCallSite callSite, ParameterExpression scope, Expression service)
+    private static Expression TryCaptureDisposable(ServiceCallSite callSite, ParameterExpression scope,
+        Expression service)
     {
         return !callSite.CaptureDisposable ? service : Expression.Invoke(GetCaptureDisposable(scope), service);
     }
@@ -174,7 +186,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             parameterExpressions = new Expression[callSite.ParameterCallSites.Length];
             for (int i = 0; i < parameterExpressions.Length; i++)
             {
-                parameterExpressions[i] = Convert(VisitCallSite(callSite.ParameterCallSites[i], context), parameters[i].ParameterType);
+                parameterExpressions[i] = Convert(VisitCallSite(callSite.ParameterCallSites[i], context),
+                    parameters[i].ParameterType);
             }
         }
 
@@ -183,6 +196,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         {
             expression = Expression.Convert(expression, typeof(object));
         }
+
         return expression;
     }
 
@@ -234,7 +248,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             keyExpression,
             resolvedVariable);
 
-        Expression captureDisposible = TryCaptureDisposable(callSite, ScopeParameter, VisitCallSiteMain(callSite, null));
+        Expression captureDisposible =
+            TryCaptureDisposable(callSite, ScopeParameter, VisitCallSiteMain(callSite, null));
 
         BinaryExpression assignExpression = Expression.Assign(
             resolvedVariable,
@@ -265,7 +280,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         ParameterExpression lockWasTaken = Expression.Variable(typeof(bool), "lockWasTaken");
         ParameterExpression sync         = Sync;
 
-        MethodCallExpression monitorEnter = Expression.Call(ServiceLookupHelpers.MonitorEnterMethodInfo, sync, lockWasTaken);
+        MethodCallExpression monitorEnter =
+            Expression.Call(ServiceLookupHelpers.MonitorEnterMethodInfo, sync, lockWasTaken);
         MethodCallExpression monitorExit = Expression.Call(ServiceLookupHelpers.MonitorExitMethodInfo, sync);
 
         BlockExpression       tryBody     = Expression.Block(monitorEnter, blockExpression);
@@ -274,8 +290,9 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         return Expression.Condition(
             Expression.Property(
                 ScopeParameter,
-                typeof(ServiceProviderEngineScope)
-                    .GetProperty(nameof(ServiceProviderEngineScope.IsRootScope), BindingFlags.Instance | BindingFlags.Public)!),
+                typeof(IServiceProviderEngineScope)
+                    .GetProperty(nameof(IServiceProviderEngineScope.IsRootScope),
+                        BindingFlags.Instance | BindingFlags.Public)!),
             resolveRootScopeExpression,
             Expression.Block(
                 typeof(object),
@@ -290,6 +307,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         {
             throw new NotSupportedException(SR.GetCaptureDisposableNotSupported);
         }
+
         return CaptureDisposable;
     }
 }

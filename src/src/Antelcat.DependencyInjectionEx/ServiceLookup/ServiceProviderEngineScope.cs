@@ -82,7 +82,7 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
     [return: NotNullIfNotNull(nameof(service))]
     public object? CaptureDisposable(object? service)
     {
-        if (ReferenceEquals(this, service) || !(service is IDisposable || service is IAsyncDisposable))
+        if (ReferenceEquals(this, service) || service is not (IDisposable or IAsyncDisposable))
         {
             return service;
         }
@@ -254,4 +254,38 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
         public bool         Disposed    => serviceProvider.disposed;
         public bool         IsScope     => !serviceProvider.IsRootScope;
     }
+}
+
+
+[DebuggerDisplay("{DebuggerToString(),nq}")]
+internal sealed class ServiceProviderEngineScopeWrap(ServiceProviderEngineScope scope) : IServiceProviderEngineScope
+{
+    public void Dispose() => scope.Dispose();
+
+    public IServiceProvider ServiceProvider => scope.ServiceProvider;
+
+    public object? GetService(Type serviceType) => scope.GetService(serviceType);
+
+    public object? GetKeyedService(Type serviceType, object? serviceKey) =>
+        scope.GetKeyedService(serviceType, serviceKey);
+
+    public object GetRequiredKeyedService(Type serviceType, object? serviceKey) =>
+        scope.GetRequiredKeyedService(serviceType, serviceKey);
+
+    public ValueTask DisposeAsync() => scope.DisposeAsync();
+
+    public IServiceScope CreateScope() => scope.CreateScope();
+
+    public Dictionary<ServiceCacheKey, object?> ResolvedServices => scope.ResolvedServices;
+
+    public object Sync => scope.Sync;
+
+    public bool IsRootScope => scope.IsRootScope;
+
+    public ServiceProvider RootProvider => scope.RootProvider;
+
+    [return: NotNullIfNotNull(nameof(service))]
+    public object? CaptureDisposable(object? service) => scope.CaptureDisposable(service);
+
+    string DebuggerToString() => scope.DebuggerToString();
 }

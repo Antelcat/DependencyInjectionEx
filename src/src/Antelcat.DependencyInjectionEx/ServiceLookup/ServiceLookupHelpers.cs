@@ -17,8 +17,8 @@ internal static class ServiceLookupHelpers
     internal static readonly MethodInfo InvokeFactoryMethodInfo = typeof(Func<IServiceProvider, object>)
         .GetMethod(nameof(Func<IServiceProvider, object>.Invoke), LookupFlags)!;
 
-    internal static readonly MethodInfo CaptureDisposableMethodInfo = typeof(ServiceProviderEngineScope)
-        .GetMethod(nameof(ServiceProviderEngineScope.CaptureDisposable), LookupFlags)!;
+    internal static readonly MethodInfo CaptureDisposableMethodInfo = typeof(IServiceProviderEngineScope)
+        .GetMethod(nameof(IServiceProviderEngineScope.CaptureDisposable), LookupFlags)!;
 
     internal static readonly MethodInfo TryGetValueMethodInfo = typeof(IDictionary<ServiceCacheKey, object>)
         .GetMethod(nameof(IDictionary<ServiceCacheKey, object>.TryGetValue), LookupFlags)!;
