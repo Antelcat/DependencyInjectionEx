@@ -23,7 +23,7 @@ internal interface IServiceProviderEngineScope :
     internal object Sync { get; }
 
     public bool IsRootScope { get; }
-    
+
     internal ServiceProvider RootProvider { get; }
 
     [return: NotNullIfNotNull(nameof(service))]
@@ -32,7 +32,7 @@ internal interface IServiceProviderEngineScope :
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(ServiceProviderEngineScopeDebugView))]
-internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope) 
+internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope)
     : IServiceProviderEngineScope
 {
     // For testing and debugging only
@@ -56,24 +56,24 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
 
     public object? GetService(Type serviceType)
     {
-            if (disposed) ThrowHelper.ThrowObjectDisposedException();
+        if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-            return RootProvider.GetService(ServiceIdentifier.FromServiceType(serviceType), this);
-        }
+        return RootProvider.GetService(ServiceIdentifier.FromServiceType(serviceType), this);
+    }
 
     public object? GetKeyedService(Type serviceType, object? serviceKey)
     {
-            if (disposed) ThrowHelper.ThrowObjectDisposedException();
+        if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-            return RootProvider.GetKeyedService(serviceType, serviceKey, this);
-        }
+        return RootProvider.GetKeyedService(serviceType, serviceKey, this);
+    }
 
     public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
     {
-            if (disposed) ThrowHelper.ThrowObjectDisposedException();
+        if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-            return RootProvider.GetRequiredKeyedService(serviceType, serviceKey, this);
-        }
+        return RootProvider.GetRequiredKeyedService(serviceType, serviceKey, this);
+    }
 
     public IServiceProvider ServiceProvider => this;
 
@@ -82,165 +82,168 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
     [return: NotNullIfNotNull(nameof(service))]
     public object? CaptureDisposable(object? service)
     {
-            if (ReferenceEquals(this, service) || !(service is IDisposable || service is IAsyncDisposable))
+        if (ReferenceEquals(this, service) || !(service is IDisposable || service is IAsyncDisposable))
+        {
+            return service;
+        }
+
+        bool disposed = false;
+        lock (Sync)
+        {
+            if (this.disposed)
             {
-                return service;
+                disposed = true;
             }
-
-            bool disposed = false;
-            lock (Sync)
+            else
             {
-                if (this.disposed)
-                {
-                    disposed = true;
-                }
-                else
-                {
-                    disposables ??= [];
+                disposables ??= [];
 
-                    disposables.Add(service);
-                }
+                disposables.Add(service);
             }
+        }
 
-            // Don't run customer code under the lock
-            if (!disposed) return service;
-            if (service is IDisposable disposable)
+        // Don't run customer code under the lock
+        if (!disposed) return service;
+        if (service is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+        else
+        {
+            // sync over async, for the rare case that an object only implements IAsyncDisposable and may end up starving the thread pool.
+            object? localService = service; // copy to avoid closure on other paths
+            Task.Run(() => ((IAsyncDisposable)localService).DisposeAsync().AsTask()).GetAwaiter().GetResult();
+        }
+
+        ThrowHelper.ThrowObjectDisposedException();
+
+        return service;
+    }
+
+    public void Dispose()
+    {
+        List<object>? toDispose = BeginDispose();
+
+        if (toDispose == null) return;
+        for (int i = toDispose.Count - 1; i >= 0; i--)
+        {
+            if (toDispose[i] is IDisposable disposable)
             {
                 disposable.Dispose();
             }
             else
             {
-                // sync over async, for the rare case that an object only implements IAsyncDisposable and may end up starving the thread pool.
-                object? localService = service; // copy to avoid closure on other paths
-                Task.Run(() => ((IAsyncDisposable)localService).DisposeAsync().AsTask()).GetAwaiter().GetResult();
-            }
-
-            ThrowHelper.ThrowObjectDisposedException();
-
-            return service;
-        }
-
-    public void Dispose()
-    {
-            List<object>? toDispose = BeginDispose();
-
-            if (toDispose == null) return;
-            for (int i = toDispose.Count - 1; i >= 0; i--)
-            {
-                if (toDispose[i] is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-                else
-                {
-                    throw new InvalidOperationException(SR.Format(SR.AsyncDisposableServiceDispose, TypeNameHelper.GetTypeDisplayName(toDispose[i])));
-                }
+                throw new InvalidOperationException(SR.Format(SR.AsyncDisposableServiceDispose,
+                    TypeNameHelper.GetTypeDisplayName(toDispose[i])));
             }
         }
+    }
 
     public ValueTask DisposeAsync()
     {
-            List<object>? toDispose = BeginDispose();
+        List<object>? toDispose = BeginDispose();
 
-            if (toDispose == null) return default;
-            try
+        if (toDispose == null) return default;
+        try
+        {
+            for (int i = toDispose.Count - 1; i >= 0; i--)
             {
-                for (int i = toDispose.Count - 1; i >= 0; i--)
+                object disposable = toDispose[i];
+                if (disposable is IAsyncDisposable asyncDisposable)
                 {
-                    object disposable = toDispose[i];
-                    if (disposable is IAsyncDisposable asyncDisposable)
+                    ValueTask vt = asyncDisposable.DisposeAsync();
+                    if (!vt.IsCompletedSuccessfully)
                     {
-                        ValueTask vt = asyncDisposable.DisposeAsync();
-                        if (!vt.IsCompletedSuccessfully)
-                        {
-                            return Await(i, vt, toDispose);
-                        }
+                        return Await(i, vt, toDispose);
+                    }
 
-                        // If its a IValueTaskSource backed ValueTask,
-                        // inform it its result has been read so it can reset
-                        vt.GetAwaiter().GetResult();
-                    }
-                    else
-                    {
-                        ((IDisposable)disposable).Dispose();
-                    }
+                    // If its a IValueTaskSource backed ValueTask,
+                    // inform it its result has been read so it can reset
+                    vt.GetAwaiter().GetResult();
                 }
-            }
-            catch (Exception ex)
-            {
-                return new ValueTask(Task.FromException(ex));
-            }
-
-            return default;
-
-            static async ValueTask Await(int i, ValueTask vt, List<object> toDispose)
-            {
-                await vt.ConfigureAwait(false);
-                // vt is acting on the disposable at index i,
-                // decrement it and move to the next iteration
-                i--;
-
-                for (; i >= 0; i--)
+                else
                 {
-                    object disposable = toDispose[i];
-                    if (disposable is IAsyncDisposable asyncDisposable)
-                    {
-                        await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        ((IDisposable)disposable).Dispose();
-                    }
+                    ((IDisposable)disposable).Dispose();
                 }
             }
         }
+        catch (Exception ex)
+        {
+            return new ValueTask(Task.FromException(ex));
+        }
+
+        return default;
+
+        static async ValueTask Await(int i, ValueTask vt, List<object> toDispose)
+        {
+            await vt.ConfigureAwait(false);
+            // vt is acting on the disposable at index i,
+            // decrement it and move to the next iteration
+            i--;
+
+            for (; i >= 0; i--)
+            {
+                object disposable = toDispose[i];
+                if (disposable is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    ((IDisposable)disposable).Dispose();
+                }
+            }
+        }
+    }
 
     private List<object>? BeginDispose()
     {
-            lock (Sync)
+        lock (Sync)
+        {
+            if (disposed)
             {
-                if (disposed)
-                {
-                    return null;
-                }
-
-                // Track statistics about the scope (number of disposable objects and number of disposed services)
-                DependencyInjectionEventSource.Log.ScopeDisposed(RootProvider.GetHashCode(), ResolvedServices.Count, disposables?.Count ?? 0);
-
-                // We've transitioned to the disposed state, so future calls to
-                // CaptureDisposable will immediately dispose the object.
-                // No further changes to _state.Disposables, are allowed.
-                disposed = true;
-
+                return null;
             }
 
-            if (IsRootScope && !RootProvider.IsDisposed())
-            {
-                // If this ServiceProviderEngineScope instance is a root scope, disposing this instance will need to dispose the RootProvider too.
-                // Otherwise the RootProvider will never get disposed and will leak.
-                // Note, if the RootProvider get disposed first, it will automatically dispose all attached ServiceProviderEngineScope objects.
-                RootProvider.Dispose();
-            }
+            // Track statistics about the scope (number of disposable objects and number of disposed services)
+            DependencyInjectionEventSource.Log.ScopeDisposed(RootProvider.GetHashCode(), ResolvedServices.Count,
+                disposables?.Count ?? 0);
 
-            // ResolvedServices is never cleared for singletons because there might be a compilation running in background
-            // trying to get a cached singleton service. If it doesn't find it
-            // it will try to create a new one which will result in an ObjectDisposedException.
-            return disposables;
+            // We've transitioned to the disposed state, so future calls to
+            // CaptureDisposable will immediately dispose the object.
+            // No further changes to _state.Disposables, are allowed.
+            disposed = true;
         }
+
+        if (IsRootScope && !RootProvider.IsDisposed())
+        {
+            // If this ServiceProviderEngineScope instance is a root scope, disposing this instance will need to dispose the RootProvider too.
+            // Otherwise the RootProvider will never get disposed and will leak.
+            // Note, if the RootProvider get disposed first, it will automatically dispose all attached ServiceProviderEngineScope objects.
+            RootProvider.Dispose();
+        }
+
+        // ResolvedServices is never cleared for singletons because there might be a compilation running in background
+        // trying to get a cached singleton service. If it doesn't find it
+        // it will try to create a new one which will result in an ObjectDisposedException.
+        return disposables;
+    }
 
     internal string DebuggerToString()
     {
-            string debugText = $"ServiceDescriptors = {RootProvider.CallSiteFactory.Descriptors.Length}";
-            if (!IsRootScope)
-            {
-                debugText += $", IsScope = true";
-            }
-            if (disposed)
-            {
-                debugText += $", Disposed = true";
-            }
-            return debugText;
+        string debugText = $"ServiceDescriptors = {RootProvider.CallSiteFactory.Descriptors.Length}";
+        if (!IsRootScope)
+        {
+            debugText += $", IsScope = true";
         }
+
+        if (disposed)
+        {
+            debugText += $", Disposed = true";
+        }
+
+        return debugText;
+    }
 
     private sealed class ServiceProviderEngineScopeDebugView(ServiceProviderEngineScope serviceProvider)
     {
