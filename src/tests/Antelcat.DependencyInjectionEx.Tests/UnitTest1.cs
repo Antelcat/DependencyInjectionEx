@@ -22,14 +22,14 @@ public class Tests
     [Test]
     public void TestService()
     {
-        provider.GetRequiredService<B>();
-        provider.GetRequiredService<C>();
+        provider.GetRequiredService<IB>();
+        provider.GetRequiredService<IC>();
         var scope = provider.CreateScope();
-        scope.ServiceProvider.GetRequiredService<C>();
-        scope.ServiceProvider.GetRequiredService<C>();
+        scope.ServiceProvider.GetRequiredService<IC>();
+        scope.ServiceProvider.GetRequiredService<IC>();
         var another = provider.CreateScope();
-        another.ServiceProvider.GetRequiredService<C>();
-        another.ServiceProvider.GetRequiredService<C>();
+        another.ServiceProvider.GetRequiredService<IC>();
+        another.ServiceProvider.GetRequiredService<IC>();
     }
 
     private int count;

@@ -23,4 +23,9 @@ public class ServiceProviderOptions
     /// NOTE: this check doesn't verify open generics services.
     /// </summary>
     public bool ValidateOnBuild { get; set; }
+
+    /// <summary>
+    /// Decide how to trigger <see cref="ServiceProvider"/>.<see cref="ServiceProvider.ServiceResolved"/> default is <see cref="CallbackMode.Batch"/>
+    /// </summary>
+    public CallbackMode CallbackMode { get; set; } = CallbackMode.Batch;
 }

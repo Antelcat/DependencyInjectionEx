@@ -8,8 +8,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Antelcat.DependencyInjectionEx.Callback;
 using Antelcat.DependencyInjectionEx.ServiceLookup;
 using Microsoft.Extensions.DependencyInjection;
+using ResolveCallChain = Antelcat.DependencyInjectionEx.Callback.ResolveCallChain;
 
 namespace Antelcat.DependencyInjectionEx;
 
@@ -23,6 +25,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
     private readonly CallSiteValidator? callSiteValidator;
 
     private readonly Func<ServiceIdentifier, ServiceAccessor> createServiceAccessor;
+
+    private readonly CallbackMode callbackMode;
 
     // Internal for testing
     internal readonly ServiceProviderEngine Engine;
@@ -61,7 +65,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         createServiceAccessor = CreateServiceAccessor;
         serviceAccessors      = new ConcurrentDictionary<ServiceIdentifier, ServiceAccessor>();
 
-        CallSiteFactory = new CallSiteFactory(serviceDescriptors, OnServiceResolved);
+        CallSiteFactory = new CallSiteFactory(serviceDescriptors);
         // The list of built-in services that aren't part of the list of service descriptors
         // keep this in sync with CallSiteFactory.IsService
         CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProvider)), new ServiceProviderCallSite());
@@ -69,6 +73,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsService)), new ConstantCallSite(typeof(IServiceProviderIsService), CallSiteFactory));
         CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsKeyedService)), new ConstantCallSite(typeof(IServiceProviderIsKeyedService), CallSiteFactory));
 
+        callbackMode = options.CallbackMode;
+        
         if (options.ValidateScopes) callSiteValidator = new CallSiteValidator();
 
         if (options.ValidateOnBuild)
@@ -166,6 +172,13 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         }
     }
 
+    private ResolveTrigger CreateTrigger(IServiceProvider provider) => callbackMode switch
+    {
+        CallbackMode.Each  => new EachResolveTrigger(OnServiceResolved, provider),
+        CallbackMode.Batch => new BatchResolveTrigger(OnServiceResolved),
+        _                  => throw new ArgumentException(nameof(callbackMode))
+    };
+
     internal object? GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
     {
         if (disposed)
@@ -175,7 +188,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         ServiceAccessor serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier, createServiceAccessor);
         OnResolve(serviceAccessor.CallSite, serviceProviderEngineScope);
         DependencyInjectionEventSource.Log.ServiceResolved(this, serviceIdentifier.ServiceType);
-        var     chain  = new ResolveCallChain(OnServiceResolved);
+        var     chain  = new ResolveCallChain(CreateTrigger(serviceProviderEngineScope));
         var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope,chain);
         object? result = serviceAccessor.RealizedService?.Invoke(wrap);
         chain.OnResolved(serviceProviderEngineScope);
@@ -213,8 +226,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
             if (callSite.Cache.Location == CallSiteResultCacheLocation.Root)
             {
                 object? value = CallSiteRuntimeResolver.Instance.Resolve(callSite,
-                    new ServiceProviderEngineScopeWrap(Root, new ResolveCallChain(OnServiceResolved)));
-                return new ServiceAccessor { CallSite = callSite, RealizedService = scope => value };
+                    new ServiceProviderEngineScopeWrap(Root, new ResolveCallChain(CreateTrigger(Root))));
+                return new ServiceAccessor { CallSite = callSite, RealizedService = _ => value };
             }
 
             ServiceResolveHandler realizedService = Engine.RealizeService(callSite);

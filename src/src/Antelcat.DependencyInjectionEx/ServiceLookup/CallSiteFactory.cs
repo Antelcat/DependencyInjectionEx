@@ -22,11 +22,9 @@ internal sealed class CallSiteFactory : IServiceProviderIsService, IServiceProvi
 
     private readonly StackGuard stackGuard;
 
-    private readonly ServiceResolvedHandler serviceResolved;
         
-    public CallSiteFactory(ICollection<ServiceDescriptor> descriptors, ServiceResolvedHandler serviceResolved)
+    public CallSiteFactory(ICollection<ServiceDescriptor> descriptors)
     {
-        this.serviceResolved = serviceResolved;
         stackGuard           = new StackGuard();
         this.descriptors     = new ServiceDescriptor[descriptors.Count];
         descriptors.CopyTo(this.descriptors, 0);
@@ -45,7 +43,7 @@ internal sealed class CallSiteFactory : IServiceProviderIsService, IServiceProvi
             {
                 Type? implementationType = descriptor.GetImplementationType();
 
-                if (implementationType == null || !implementationType.IsGenericTypeDefinition)
+                if (implementationType is not { IsGenericTypeDefinition: true })
                 {
                     throw new ArgumentException(
                         SR.Format(SR.OpenGenericServiceRequiresOpenGenericImplementation, serviceType),

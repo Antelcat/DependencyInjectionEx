@@ -208,7 +208,7 @@ internal readonly struct RuntimeResolverContext
 
     public RuntimeResolverLock AcquiredLocks { get; init; }
 
-    public required ResolveCallChain? CallChain { get; init; }
+    public required Callback.ResolveCallChain? CallChain { get; init; }
 }
 
 [Flags]
