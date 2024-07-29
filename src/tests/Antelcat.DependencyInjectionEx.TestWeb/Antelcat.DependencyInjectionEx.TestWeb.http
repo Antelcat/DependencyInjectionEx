@@ -1,0 +1,6 @@
+@Antelcat.DependencyInjectionEx.TestWeb_HostAddress = http://localhost:5044
+
+GET {{Antelcat.DependencyInjectionEx.TestWeb_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
