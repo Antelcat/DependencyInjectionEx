@@ -11,10 +11,29 @@ using Microsoft.Extensions.Internal;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
+internal interface IServiceProviderEngineScope :
+    IServiceScope,
+    IServiceProvider,
+    IKeyedServiceProvider,
+    IAsyncDisposable,
+    IServiceScopeFactory
+{
+    internal Dictionary<ServiceCacheKey, object?> ResolvedServices { get; }
+
+    internal object Sync { get; }
+
+    public bool IsRootScope { get; }
+    
+    internal ServiceProvider RootProvider { get; }
+
+    [return: NotNullIfNotNull(nameof(service))]
+    internal object? CaptureDisposable(object? service);
+}
+
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(ServiceProviderEngineScopeDebugView))]
 internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope) 
-    : IServiceScope, IServiceProvider, IKeyedServiceProvider, IAsyncDisposable, IServiceScopeFactory
+    : IServiceProviderEngineScope
 {
     // For testing and debugging only
     internal IList<object> Disposables => disposables ?? (IList<object>)Array.Empty<object>();
@@ -22,18 +41,18 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
     private bool          disposed;
     private List<object>? disposables;
 
-    internal Dictionary<ServiceCacheKey, object?> ResolvedServices { get; } = new();
+    public Dictionary<ServiceCacheKey, object?> ResolvedServices { get; } = new();
 
     internal bool Disposed => disposed;
 
     // This lock protects state on the scope, in particular, for the root scope, it protects
     // the list of disposable entries only, since ResolvedServices are cached on CallSites
     // For other scopes, it protects ResolvedServices and the list of disposables
-    internal object Sync => ResolvedServices;
+    public object Sync => ResolvedServices;
 
     public bool IsRootScope { get; } = isRootScope;
 
-    internal ServiceProvider RootProvider { get; } = provider;
+    public ServiceProvider RootProvider { get; } = provider;
 
     public object? GetService(Type serviceType)
     {
@@ -61,7 +80,7 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
     public IServiceScope CreateScope() => RootProvider.CreateScope();
 
     [return: NotNullIfNotNull(nameof(service))]
-    internal object? CaptureDisposable(object? service)
+    public object? CaptureDisposable(object? service)
     {
             if (ReferenceEquals(this, service) || !(service is IDisposable || service is IAsyncDisposable))
             {

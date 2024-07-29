@@ -20,7 +20,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
     {
     }
 
-    public object? Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)
+    public object? Resolve(ServiceCallSite callSite, IServiceProviderEngineScope scope)
     {
         // Fast path to avoid virtual calls if we already have the cached value in the root scope
         if (scope.IsRootScope && callSite.Value is { } cached)
@@ -127,7 +127,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             VisitCache(callSite, context, context.Scope, RuntimeResolverLock.Scope);
     }
 
-    private object? VisitCache(ServiceCallSite callSite, RuntimeResolverContext context, ServiceProviderEngineScope serviceProviderEngine, RuntimeResolverLock lockType)
+    private object? VisitCache(ServiceCallSite callSite, RuntimeResolverContext context, IServiceProviderEngineScope serviceProviderEngine, RuntimeResolverLock lockType)
     {
         bool                                 lockTaken        = false;
         object                               sync             = serviceProviderEngine.Sync;
@@ -211,7 +211,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
 
 internal readonly struct RuntimeResolverContext
 {
-    public ServiceProviderEngineScope Scope { get; init; }
+    public IServiceProviderEngineScope Scope { get; init; }
 
     public RuntimeResolverLock AcquiredLocks { get; init; }
 

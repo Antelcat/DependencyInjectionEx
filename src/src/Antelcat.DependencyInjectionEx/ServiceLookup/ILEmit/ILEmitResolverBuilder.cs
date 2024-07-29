@@ -15,14 +15,14 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 [RequiresDynamicCode("Creates DynamicMethods")]
 internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuilderContext, object?>
 {
-    private static readonly MethodInfo ResolvedServicesGetter = typeof(ServiceProviderEngineScope).GetProperty(
-        nameof(ServiceProviderEngineScope.ResolvedServices), BindingFlags.Instance | BindingFlags.NonPublic)!.GetMethod!;
+    private static readonly MethodInfo ResolvedServicesGetter = typeof(IServiceProviderEngineScope).GetProperty(
+        nameof(IServiceProviderEngineScope.ResolvedServices), BindingFlags.Instance | BindingFlags.NonPublic)!.GetMethod!;
 
-    private static readonly MethodInfo ScopeLockGetter = typeof(ServiceProviderEngineScope).GetProperty(
-        nameof(ServiceProviderEngineScope.Sync), BindingFlags.Instance | BindingFlags.NonPublic)!.GetMethod!;
+    private static readonly MethodInfo ScopeLockGetter = typeof(IServiceProviderEngineScope).GetProperty(
+        nameof(IServiceProviderEngineScope.Sync), BindingFlags.Instance | BindingFlags.NonPublic)!.GetMethod!;
 
-    private static readonly MethodInfo ScopeIsRootScope = typeof(ServiceProviderEngineScope).GetProperty(
-        nameof(ServiceProviderEngineScope.IsRootScope), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
+    private static readonly MethodInfo ScopeIsRootScope = typeof(IServiceProviderEngineScope).GetProperty(
+        nameof(IServiceProviderEngineScope.IsRootScope), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
 
     private static readonly MethodInfo CallSiteRuntimeResolverResolveMethod = typeof(CallSiteRuntimeResolver).GetMethod(
         nameof(CallSiteRuntimeResolver.Resolve), BindingFlags.Public | BindingFlags.Instance)!;
@@ -90,7 +90,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
             attributes: MethodAttributes.Public | MethodAttributes.Static,
             callingConvention: CallingConventions.Standard,
             returnType: typeof(object),
-            parameterTypes: [typeof(ILEmitResolverBuilderRuntimeContext), typeof(ServiceProviderEngineScope)],
+            parameterTypes: [typeof(ILEmitResolverBuilderRuntimeContext), typeof(IServiceProviderEngineScope)],
             owner: GetType(),
             skipVisibility: true);
 

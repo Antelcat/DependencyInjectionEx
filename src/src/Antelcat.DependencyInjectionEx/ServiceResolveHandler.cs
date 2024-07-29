@@ -1,5 +1,5 @@
 global using ServiceResolveHandler = System.Func<
-    Antelcat.DependencyInjectionEx.ServiceLookup.ServiceProviderEngineScope, 
+    Antelcat.DependencyInjectionEx.ServiceLookup.IServiceProviderEngineScope, 
     //Antelcat.DependencyInjectionEx.ServiceLookup.ResolveCallChain,
     object?>;
 using Antelcat.DependencyInjectionEx.ServiceLookup;

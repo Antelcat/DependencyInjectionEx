@@ -10,7 +10,7 @@ internal sealed class ExpressionsServiceProviderEngine(ServiceProvider servicePr
 {
     private readonly ExpressionResolverBuilder expressionResolverBuilder = new(serviceProvider);
 
-    public override Func<ServiceProviderEngineScope, object> RealizeService(ServiceCallSite callSite)
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
     {
             return expressionResolverBuilder.Build(callSite);
         }

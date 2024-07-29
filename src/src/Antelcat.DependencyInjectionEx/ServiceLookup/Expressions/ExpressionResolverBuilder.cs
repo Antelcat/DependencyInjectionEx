@@ -41,18 +41,18 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
 
     private readonly ServiceProviderEngineScope rootScope;
 
-    private readonly ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>> scopeResolverCache;
+    private readonly ConcurrentDictionary<ServiceCacheKey, ServiceResolveHandler> scopeResolverCache;
 
-    private readonly Func<ServiceCacheKey, ServiceCallSite, Func<ServiceProviderEngineScope, object>> buildTypeDelegate;
+    private readonly Func<ServiceCacheKey, ServiceCallSite, ServiceResolveHandler> buildTypeDelegate;
 
     public ExpressionResolverBuilder(ServiceProvider serviceProvider)
     {
         rootScope          = serviceProvider.Root;
-        scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, Func<ServiceProviderEngineScope, object>>();
+        scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, ServiceResolveHandler>();
         buildTypeDelegate  = (key, cs) => BuildNoCache(cs);
     }
 
-    public Func<ServiceProviderEngineScope, object> Build(ServiceCallSite callSite)
+    public ServiceResolveHandler Build(ServiceCallSite callSite)
     {
         // Only scope methods are cached
         if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
@@ -67,18 +67,18 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         return BuildNoCache(callSite);
     }
 
-    public Func<ServiceProviderEngineScope, object> BuildNoCache(ServiceCallSite callSite)
+    public ServiceResolveHandler BuildNoCache(ServiceCallSite callSite)
     {
-        Expression<Func<ServiceProviderEngineScope, object>> expression = BuildExpression(callSite);
+        Expression<ServiceResolveHandler> expression = BuildExpression(callSite);
         DependencyInjectionEventSource.Log.ExpressionTreeGenerated(rootScope.RootProvider, callSite.ServiceType, expression);
         return expression.Compile();
     }
 
-    private Expression<Func<ServiceProviderEngineScope, object>> BuildExpression(ServiceCallSite callSite)
+    private Expression<ServiceResolveHandler> BuildExpression(ServiceCallSite callSite)
     {
         if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
         {
-            return Expression.Lambda<Func<ServiceProviderEngineScope, object>>(
+            return Expression.Lambda<ServiceResolveHandler>(
                 Expression.Block(
                     new[] { ResolvedServices, Sync },
                     ResolvedServicesVariableAssignment,
@@ -87,7 +87,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
                 ScopeParameter);
         }
 
-        return Expression.Lambda<Func<ServiceProviderEngineScope, object>>(
+        return Expression.Lambda<ServiceResolveHandler>(
             Convert(VisitCallSite(callSite, null), typeof(object), forceValueTypeConversion: true),
             ScopeParameter);
     }
