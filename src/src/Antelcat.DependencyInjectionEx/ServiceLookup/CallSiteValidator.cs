@@ -40,6 +40,7 @@ internal sealed class CallSiteValidator : CallSiteVisitor<CallSiteValidator.Call
                 scopedService,
                 nameof(ServiceLifetime.Scoped).ToLowerInvariant()));
     }
+    
 
     protected override Type? VisitConstructor(ConstructorCallSite constructorCallSite, CallSiteValidatorState state)
     {

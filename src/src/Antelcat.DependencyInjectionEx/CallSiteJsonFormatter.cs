@@ -25,6 +25,11 @@ internal sealed class CallSiteJsonFormatter : CallSiteVisitor<CallSiteJsonFormat
         return stringBuilder.ToString();
     }
 
+    protected override object? VisitCallback(object? result, ServiceCallSite callSite, CallSiteFormatterContext argument)
+    {
+        return result;
+    }
+
     protected override object? VisitConstructor(ConstructorCallSite constructorCallSite,
         CallSiteFormatterContext argument)
     {

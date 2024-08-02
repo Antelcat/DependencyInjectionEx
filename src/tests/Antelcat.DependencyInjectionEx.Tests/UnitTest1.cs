@@ -1,5 +1,6 @@
 using Antelcat.DependencyInjectionEx.Autowired;
 using Microsoft.Extensions.DependencyInjection;
+using Tests;
 
 namespace Antelcat.DependencyInjectionEx.Tests;
 
@@ -11,54 +12,51 @@ public class Tests
     public void Setup()
     {
         provider = new ServiceCollection()
+            .AddTransient(typeof(IResolvable<>),typeof(Resolvable<>))
             .AddSingleton(typeof(IA), typeof(A))
             .AddScoped<IB, B>()
-            .AddKeyedScoped(typeof(IB), nameof(IB), typeof(B))
             .AddTransient<IC, C>()
             .AddTransient(typeof(D))
-            .BuildAutowiredServiceProviderEx();
+            .BuildAutowiredServiceProviderEx(new ServiceProviderOptions
+            {
+                CallbackMode = CallbackMode.Batch
+            });
+        provider.ServiceResolved += (_, _, instance, kind) =>
+        {
+            Console.WriteLine($"{kind} {instance}");
+            //Assert.That(kind, Is.EqualTo(ServiceResolveKind.Constructor));
+        };
     }
 
     [Test]
-    public void TestService()
-    {
-        provider.GetRequiredService<IB>();
-        provider.GetRequiredService<IC>();
-        var scope = provider.CreateScope();
-        scope.ServiceProvider.GetRequiredService<IC>();
-        scope.ServiceProvider.GetRequiredService<IC>();
-        var another = provider.CreateScope();
-        another.ServiceProvider.GetRequiredService<IC>();
-        another.ServiceProvider.GetRequiredService<IC>();
-    }
+    public void TestOnce() => provider.CreateScope().ServiceProvider.TestResolve();
 
-    private int count;
-    
-    private void TestResolve(IServiceProvider serviceProvider)
+    [Test]
+    public async Task TestTribe()
     {
-        serviceProvider.GetRequiredService<D>().Check(++count);
+        provider.CreateScope().ServiceProvider.TestResolve();
+        provider.CreateScope().ServiceProvider.TestResolve();
+        await Task.Delay(100);
+        provider.CreateScope().ServiceProvider.TestResolve();
     }
 
     [Test]
     public async Task TestKeyedService()
     {
-        TestResolve(provider);
-        TestResolve(provider);
-        TestResolve(provider);
-        await Task.Delay(100);
-        TestResolve(provider);
-        TestResolve(provider);
-        TestResolve(provider);
+        var root = provider.CreateScope().ServiceProvider;
+        root.TestResolve();
+        await Task.Delay(300);
+        root.TestResolve();
+        provider.TestResolve();
+        provider.TestResolve();
         var scope = provider.CreateScope().ServiceProvider;
-        TestResolve(scope);
-        TestResolve(scope);
-        TestResolve(scope); 
+        scope.TestResolve();
+        scope.TestResolve();
         var another = provider.CreateScope().ServiceProvider;
-        TestResolve(another);
-        TestResolve(another);
-        TestResolve(another); 
-        TestResolve(another);
+        another.TestResolve();
+        another.TestResolve();
     }
+    
     [Test]
     public void TestCacheWeave()
     {
@@ -75,50 +73,5 @@ public class Tests
     public void Dispose()
     {
         provider.Dispose();
-    }
-}
-
-public interface IA;
-
-public class A : IA
-{
-   [Autowired] public B C { get; set; }
-}
-
-public interface IB;
-
-public class B(IA a) : IB;
-
-public interface IC;
-public class C(IB b) : IC
-{
-    [Autowired(typeof(IB), Key = nameof(IB))]
-    public B B { get; set; }
-
-    [Autowired(typeof(IB), Key = nameof(IB), GetServices = true)]
-    public IEnumerable<IB> BS { get; set; }
-}
-
-public class D(IC c) : IDisposable
-{
-    [Autowired(typeof(IA))]
-    public A A { get; set; }
-
-    [Autowired(typeof(IB), Key = nameof(IB), GetServices = true)]
-    public IEnumerable<IB> BS { get; set; }
-    
-    [Autowired]
-    public IC C { get; set; }
-
-    public void Check(int count)
-    {
-        Assert.NotNull(A);
-        Assert.IsNotEmpty(BS);
-        Assert.NotNull(C, $"{count} C is null");
-    }
-
-    public void Dispose()
-    {
-        // TODO 在此释放托管资源
     }
 }

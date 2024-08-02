@@ -12,7 +12,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvider)
     : CompiledServiceProviderEngine(serviceProvider)
 {
-    private readonly ServiceProvider _serviceProvider = serviceProvider;
+    private readonly ServiceProvider serviceProvider = serviceProvider;
 
     public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
     {
@@ -31,11 +31,11 @@ internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvid
                     {
                         try
                         {
-                            _serviceProvider.ReplaceServiceAccessor(callSite, base.RealizeService(callSite));
+                            serviceProvider.ReplaceServiceAccessor(callSite, base.RealizeService(callSite));
                         }
                         catch (Exception ex)
                         {
-                            DependencyInjectionEventSource.Log.ServiceRealizationFailed(ex, _serviceProvider.GetHashCode());
+                            DependencyInjectionEventSource.Log.ServiceRealizationFailed(ex, serviceProvider.GetHashCode());
 
                             Debug.Fail($"We should never get exceptions from the background compilation.{Environment.NewLine}{ex}");
                         }

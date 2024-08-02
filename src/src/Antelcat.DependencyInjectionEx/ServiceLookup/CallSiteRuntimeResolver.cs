@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Threading;
+using Antelcat.DependencyInjectionEx.Callback;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
@@ -31,21 +32,18 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
         var ret = VisitCallSite(callSite, new RuntimeResolverContext
         {
             Scope     = scope,
-            CallChain = (scope as ServiceProviderEngineScopeWrap)?.CallChain ?? null
+            CallChain = (scope as ServiceProviderEngineScopeWrap)?.CallChain
         });
         return ret;
-    }
-
-    protected override object? VisitCallSiteMain(ServiceCallSite callSite, RuntimeResolverContext argument)
-    {
-        var ret = base.VisitCallSiteMain(callSite, argument);
-        return argument.CallChain?.RuntimePostResolve(ret, callSite) ?? ret;
     }
 
     protected override object? VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context)
     {
         return context.Scope.CaptureDisposable(VisitCallSiteMain(transientCallSite, context));
     }
+
+    protected override object? VisitCallback(object? result, ServiceCallSite callSite, RuntimeResolverContext argument) => 
+        argument.CallChain is not null ? argument.CallChain.PostResolve(result, callSite) : result;
 
     protected override object VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)
     {
@@ -63,6 +61,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             }
         }
 
+
 #if NETFRAMEWORK || NETSTANDARD2_0
         try
         {
@@ -75,7 +74,10 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             throw;
         }
 #else
-            return constructorCallSite.ConstructorInfo.Invoke(BindingFlags.DoNotWrapExceptions, binder: null, parameters: parameterValues, culture: null);
+        return constructorCallSite.ConstructorInfo.Invoke(BindingFlags.DoNotWrapExceptions,
+            binder: null,
+            parameters: parameterValues,
+            culture: null);
 #endif
     }
 
@@ -87,7 +89,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             return value;
         }
 
-        var                            lockType              = RuntimeResolverLock.Root;
+        const RuntimeResolverLock   lockType              = RuntimeResolverLock.Root;
         IServiceProviderEngineScope serviceProviderEngine = context.Scope.RootProvider.Root;
 
         lock (callSite)
@@ -163,15 +165,11 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
         }
     }
 
-    protected override object? VisitConstant(ConstantCallSite constantCallSite, RuntimeResolverContext context)
-    {
-        return constantCallSite.DefaultValue;
-    }
+    protected override object? VisitConstant(ConstantCallSite constantCallSite, RuntimeResolverContext context) => 
+        constantCallSite.DefaultValue;
 
-    protected override object VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, RuntimeResolverContext context)
-    {
-        return context.Scope;
-    }
+    protected override object VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, RuntimeResolverContext context) => 
+        context.Scope;
 
     protected override object VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)
     {
@@ -184,7 +182,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             object? value = VisitCallSite(enumerableCallSite.ServiceCallSites[index], context);
             array.SetValue(value, index);
         }
-        return array;
+        return context.CallChain is not null ? context.CallChain.PostResolve(array, enumerableCallSite) : array;
 
         [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
             Justification = "VerifyAotCompatibility ensures elementType is not a ValueType")]
@@ -196,10 +194,8 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
         }
     }
 
-    protected override object VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)
-    {
-        return factoryCallSite.Factory(context.Scope);
-    }
+    protected override object VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context) => 
+        factoryCallSite.Factory(context.Scope);
 }
 
 internal readonly struct RuntimeResolverContext
@@ -208,7 +204,7 @@ internal readonly struct RuntimeResolverContext
 
     public RuntimeResolverLock AcquiredLocks { get; init; }
 
-    public required Callback.ResolveCallChain? CallChain { get; init; }
+    public required ResolveCallChain? CallChain { get; init; }
 }
 
 [Flags]

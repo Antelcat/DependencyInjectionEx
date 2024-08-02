@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using Antelcat.DependencyInjectionEx.Callback;
 using Antelcat.DependencyInjectionEx.ServiceLookup;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup
@@ -31,11 +32,11 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
         private static readonly MethodInfo CallSiteRuntimeResolverInstanceField = typeof(CallSiteRuntimeResolver).GetProperty(
             nameof(CallSiteRuntimeResolver.Instance), BindingFlags.Static | BindingFlags.Public | BindingFlags.Instance)!.GetMethod!;
 
-        private static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap).GetProperty(
+        internal static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap).GetProperty(
             nameof(ServiceProviderEngineScopeWrap.CallChain), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
 
-        private static readonly MethodInfo ILPostResolve = typeof(Callback.ResolveCallChain).GetMethod(
-            nameof(Callback.ResolveCallChain.ILPostResolve), BindingFlags.Public | BindingFlags.Instance)!;
+        private static readonly MethodInfo PostResolve = typeof(ResolveCallChain).GetMethod(
+            nameof(ResolveCallChain.PostResolve), BindingFlags.Public | BindingFlags.Instance)!;
     
         private static readonly FieldInfo FactoriesField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Factories))!;
         private static readonly FieldInfo ConstantsField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Constants))!;
@@ -59,17 +60,17 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             public DynamicMethod                       DynamicMethod;
         }
 
-        private readonly ServiceProviderEngineScope _rootScope;
+        private readonly ServiceProviderEngineScope rootScope;
 
-        private readonly ConcurrentDictionary<ServiceCacheKey, GeneratedMethod> _scopeResolverCache;
+        private readonly ConcurrentDictionary<ServiceCacheKey, GeneratedMethod> scopeResolverCache;
 
-        private readonly Func<ServiceCacheKey, ServiceCallSite, GeneratedMethod> _buildTypeDelegate;
+        private readonly Func<ServiceCacheKey, ServiceCallSite, GeneratedMethod> buildTypeDelegate;
 
         public ILEmitResolverBuilder(ServiceProvider serviceProvider)
         {
-            _rootScope          = serviceProvider.Root;
-            _scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, GeneratedMethod>();
-            _buildTypeDelegate  = (key, cs) => BuildTypeNoCache(cs);
+            rootScope          = serviceProvider.Root;
+            scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, GeneratedMethod>();
+            buildTypeDelegate  = (_, cs) => BuildTypeNoCache(cs);
         }
 
         public ServiceResolveHandler Build(ServiceCallSite callSite)
@@ -83,9 +84,9 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
             {
 #if NETFRAMEWORK || NETSTANDARD2_0
-                return _scopeResolverCache.GetOrAdd(callSite.Cache.Key, key => _buildTypeDelegate(key, callSite));
+                return scopeResolverCache.GetOrAdd(callSite.Cache.Key, key => buildTypeDelegate(key, callSite));
 #else
-                return _scopeResolverCache.GetOrAdd(callSite.Cache.Key, _buildTypeDelegate, callSite);
+                return scopeResolverCache.GetOrAdd(callSite.Cache.Key, buildTypeDelegate, callSite);
 #endif
             }
 
@@ -106,8 +107,8 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             // In traces we've seen methods range from 100B - 4K sized methods since we've
             // stop trying to inline everything into scoped methods. We'll pay for a couple of resizes
             // so there'll be allocations but we could potentially change ILGenerator to use the array pool
-            ILGenerator                         ilGenerator    = dynamicMethod.GetILGenerator(512);
-            ILEmitResolverBuilderRuntimeContext runtimeContext = GenerateMethodBody(callSite, ilGenerator);
+            var                         ilGenerator    = dynamicMethod.GetILGenerator(512);
+            var runtimeContext = GenerateMethodBody(callSite, ilGenerator);
 
 #if SAVE_ASSEMBLIES
             var assemblyName = "Test" + DateTime.Now.Ticks;
@@ -126,7 +127,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             // Assembly.Save is only available in .NET Framework (https://github.com/dotnet/runtime/issues/15704)
             assembly.Save(fileName);
 #endif
-            DependencyInjectionEventSource.Log.DynamicMethodBuilt(_rootScope.RootProvider, callSite.ServiceType, ilGenerator.ILOffset);
+            DependencyInjectionEventSource.Log.DynamicMethodBuilt(rootScope.RootProvider, callSite.ServiceType, ilGenerator.ILOffset);
 
             return new GeneratedMethod
             {
@@ -152,10 +153,22 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             return null;
         }
 
+        protected override object? VisitCallback(object? _, ServiceCallSite callSite, ILEmitResolverBuilderContext argument)
+        {
+            var localBuilder = argument.Generator.DeclareLocal(typeof(object));
+            argument.Generator.Emit(OpCodes.Stloc, localBuilder); //store in local
+            var chain = argument.LocalChain;
+            argument.Generator.Emit(OpCodes.Ldloc, chain); //load wrap
+            argument.Generator.Emit(OpCodes.Ldloc, localBuilder);
+            AddCallSite(argument, callSite);
+            argument.Generator.Emit(OpCodes.Callvirt, PostResolve);
+            return null;
+        }
+
         protected override object? VisitConstructor(ConstructorCallSite constructorCallSite, ILEmitResolverBuilderContext argument)
         {
             // new T([create arguments])
-            foreach (ServiceCallSite parameterCallSite in constructorCallSite.ParameterCallSites)
+            foreach (var parameterCallSite in constructorCallSite.ParameterCallSites)
             {
                 VisitCallSite(parameterCallSite, argument);
                 if (parameterCallSite.ServiceType.IsValueType)
@@ -175,13 +188,13 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 
         protected override object? VisitRootCache(ServiceCallSite callSite, ILEmitResolverBuilderContext argument)
         {
-            AddConstant(argument, CallSiteRuntimeResolver.Instance.Resolve(callSite, _rootScope));
+            AddConstant(argument, CallSiteRuntimeResolver.Instance.Resolve(callSite, rootScope));
             return null;
         }
 
         protected override object? VisitScopeCache(ServiceCallSite scopedCallSite, ILEmitResolverBuilderContext argument)
         {
-            GeneratedMethod generatedMethod = BuildType(scopedCallSite);
+            var generatedMethod = BuildType(scopedCallSite);
 
             // Type builder doesn't support invoking dynamic methods, replace them with delegate.Invoke calls
 #if SAVE_ASSEMBLIES
@@ -226,14 +239,14 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                 // ...
                 argument.Generator.Emit(OpCodes.Ldc_I4, enumerableCallSite.ServiceCallSites.Length);
                 argument.Generator.Emit(OpCodes.Newarr, enumerableCallSite.ItemType);
-                for (int i = 0; i < enumerableCallSite.ServiceCallSites.Length; i++)
+                for (var i = 0; i < enumerableCallSite.ServiceCallSites.Length; i++)
                 {
                     // duplicate array
                     argument.Generator.Emit(OpCodes.Dup);
                     // push index
                     argument.Generator.Emit(OpCodes.Ldc_I4, i);
                     // create parameter
-                    ServiceCallSite parameterCallSite = enumerableCallSite.ServiceCallSites[i];
+                    var parameterCallSite = enumerableCallSite.ServiceCallSites[i];
                     VisitCallSite(parameterCallSite, argument);
                     if (parameterCallSite.ServiceType.IsValueType)
                     {
@@ -250,7 +263,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 
         protected override object? VisitFactory(FactoryCallSite factoryCallSite, ILEmitResolverBuilderContext argument)
         {
-            argument.Factories ??= new List<Func<IServiceProvider, object>>();
+            argument.Factories ??= [];
 
             // this.Factories[i](ProviderScope)
             argument.Generator.Emit(OpCodes.Ldarg_0);
@@ -343,15 +356,15 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
 
             if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
             {
-                LocalBuilder cacheKeyLocal = context.Generator.DeclareLocal(typeof(ServiceCacheKey));
-                LocalBuilder resolvedServicesLocal = context.Generator.DeclareLocal(typeof(IDictionary<ServiceCacheKey, object>));
-                LocalBuilder syncLocal = context.Generator.DeclareLocal(typeof(object));
-                LocalBuilder lockTakenLocal = context.Generator.DeclareLocal(typeof(bool));
-                LocalBuilder resultLocal = context.Generator.DeclareLocal(typeof(object));
+                var cacheKeyLocal = context.Generator.DeclareLocal(typeof(ServiceCacheKey));
+                var resolvedServicesLocal = context.Generator.DeclareLocal(typeof(IDictionary<ServiceCacheKey, object>));
+                var syncLocal = context.Generator.DeclareLocal(typeof(object));
+                var lockTakenLocal = context.Generator.DeclareLocal(typeof(bool));
+                var resultLocal = context.Generator.DeclareLocal(typeof(object));
 
-                Label skipCreationLabel = context.Generator.DefineLabel();
-                Label returnLabel       = context.Generator.DefineLabel();
-                Label defaultLabel      = context.Generator.DefineLabel();
+                var skipCreationLabel = context.Generator.DefineLabel();
+                var returnLabel       = context.Generator.DefineLabel();
+                var defaultLabel      = context.Generator.DefineLabel();
 
                 // Check if scope IsRootScope
                 context.Generator.Emit(OpCodes.Ldarg_1);
@@ -463,13 +476,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
                 CallSites = context.CallSites?.ToArray()
             };
         }
-
-        protected override object? VisitCallSiteMain(ServiceCallSite callSite, ILEmitResolverBuilderContext argument)
-        {
-            base.VisitCallSiteMain(callSite, argument);
-            PostResolve(argument, callSite);
-            return null;
-        }
+    
 
         private static void BeginCaptureDisposable(ILEmitResolverBuilderContext argument)
         {
@@ -481,31 +488,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup
             // When calling CaptureDisposable we expect callee and arguments to be on the stackcontext.Generator.BeginExceptionBlock
             argument.Generator.Emit(OpCodes.Callvirt, ServiceLookupHelpers.CaptureDisposableMethodInfo);
         }
-
-        private static void PostResolve(ILEmitResolverBuilderContext context, ServiceCallSite callSite)
-        {
-            var localBuilder = context.Generator.DeclareLocal(typeof(object));
-            context.Generator.Emit(OpCodes.Stloc, localBuilder); //store in local
-            context.Generator.Emit(OpCodes.Ldarg_1);             //load wrap
-            context.Generator.Emit(OpCodes.Callvirt, CallChain); // get call chain
-            context.Generator.Emit(OpCodes.Ldloc, localBuilder);
-            AddCallSite(context, callSite);
-            context.Generator.Emit(OpCodes.Callvirt, ILPostResolve);
-        }
+     
     }
 }
 
-namespace Antelcat.DependencyInjectionEx.Callback
-{
-    partial class ResolveCallChain
-    {
-        public object? ILPostResolve(object? resolved, ServiceCallSite callSite)
-        {
-            if (resolved is null) return null;
-            var serviceType = callSite.ServiceType;
-            var kind        = (ServiceResolveKind)callSite.Kind;
-            trigger.PostResolve(serviceType, resolved, kind);
-            return resolved;
-        }
-    }
-}

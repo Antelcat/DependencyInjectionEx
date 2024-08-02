@@ -41,8 +41,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
 
     public event ServiceResolvedHandler? ServiceResolved;
 
-    internal void OnServiceResolved(IServiceProvider provider, Type serviceType, object instance, ServiceResolveKind kind)
-        => ServiceResolved?.Invoke(provider, serviceType, instance, kind);
+    internal void OnServiceResolved(IServiceProvider provider, Type serviceType, object instance, ServiceResolveKind kind) => 
+        ServiceResolved?.Invoke(provider, serviceType, instance, kind);
 
     internal static bool VerifyOpenGenericServiceTrimmability { get; } =
         AppContext.TryGetSwitch("Antelcat.DependencyInjectionEx.VerifyOpenGenericServiceTrimmability", out bool verifyOpenGenerics) && verifyOpenGenerics;
@@ -189,7 +189,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         OnResolve(serviceAccessor.CallSite, serviceProviderEngineScope);
         DependencyInjectionEventSource.Log.ServiceResolved(this, serviceIdentifier.ServiceType);
         var     chain  = new ResolveCallChain(CreateTrigger(serviceProviderEngineScope));
-        var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope,chain);
+        var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope, chain);
         object? result = serviceAccessor.RealizedService?.Invoke(wrap);
         chain.OnResolved(serviceProviderEngineScope);
         Debug.Assert(result is null || CallSiteFactory.IsService(serviceIdentifier));
@@ -216,7 +216,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
 
     private ServiceAccessor CreateServiceAccessor(ServiceIdentifier serviceIdentifier)
     {
-        ServiceCallSite? callSite = CallSiteFactory.GetCallSite(serviceIdentifier, new CallSiteChain());
+        var callSite = CallSiteFactory.GetCallSite(serviceIdentifier, new CallSiteChain());
         if (callSite != null)
         {
             DependencyInjectionEventSource.Log.CallSiteBuilt(this, serviceIdentifier.ServiceType, callSite);
@@ -292,7 +292,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
 
     private sealed class ServiceAccessor
     {
-        public ServiceCallSite?                           CallSite        { get; set; }
+        public ServiceCallSite?       CallSite        { get; set; }
         public ServiceResolveHandler? RealizedService { get; set; }
     }
 }
