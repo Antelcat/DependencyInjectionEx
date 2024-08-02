@@ -26,7 +26,7 @@
         </None>
     </ItemGroup>
     
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Target Condition="$(SolutionName) == 'Antelcat.DependencyInjectionEx'" Name="PostBuild" AfterTargets="PostBuildEvent">
         <Exec Command="copy $(ProjectDir)bin\Debug\*.nupkg ..\..\build\ /Y" />
     </Target>
 
