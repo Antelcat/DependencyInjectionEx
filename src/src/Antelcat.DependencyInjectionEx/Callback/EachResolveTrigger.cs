@@ -1,10 +1,18 @@
 using System;
+using System.Diagnostics;
 
 namespace Antelcat.DependencyInjectionEx.Callback;
 
-public class EachResolveTrigger(ServiceResolvedHandler handler, IServiceProvider provider) : ResolveTrigger
+public class EachResolveTrigger(ServiceResolvedHandler handler) : ResolveTrigger
 {
-    public override void PostResolve(Type serviceType, object target, ServiceResolveKind kind) => handler(provider, serviceType, target, kind);
+    public override void PostResolve(Type serviceType, object target, ServiceResolveKind kind)
+    {
+        if(Provider is not null) handler(Provider, serviceType, target, kind);
+        else
+        {
+            Debugger.Break();
+        }
+    }
 
-    public override void FinishResolve(IServiceProvider _) { }
+    public override void FinishResolve() { }
 }

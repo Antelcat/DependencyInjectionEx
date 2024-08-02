@@ -6,6 +6,12 @@ namespace Antelcat.DependencyInjectionEx.Callback;
 
 internal class ResolveCallChain(ResolveTrigger trigger)
 {
+    public IServiceProvider? Provider
+    {
+        get => trigger.Provider;
+        set => trigger.Provider = value;
+    }
+
     [return: NotNullIfNotNull(nameof(resolved))]
     public object? PostResolve(object? resolved, ServiceCallSite callSite)
     {
@@ -16,5 +22,5 @@ internal class ResolveCallChain(ResolveTrigger trigger)
         return resolved;
     }
 
-    public void OnResolved(IServiceProvider provider) => trigger.FinishResolve(provider);
+    public void OnResolved() => trigger.FinishResolve();
 }

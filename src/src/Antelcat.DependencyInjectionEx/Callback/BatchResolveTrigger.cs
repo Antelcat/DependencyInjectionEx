@@ -9,9 +9,12 @@ public class BatchResolveTrigger(ServiceResolvedHandler handler) : ResolveTrigge
 
     public override void PostResolve(Type serviceType, object target, ServiceResolveKind kind)
     {
-        if(kind is not ServiceResolveKind.Constructor) Debugger.Break();
         Resolves += provider => handler(provider, serviceType, target, kind);
     }
 
-    public override void FinishResolve(IServiceProvider provider) => Resolves?.Invoke(provider);
+    public override void FinishResolve()
+    {
+        if (Provider is not null) Resolves?.Invoke(Provider);
+        Resolves = null;
+    }
 }

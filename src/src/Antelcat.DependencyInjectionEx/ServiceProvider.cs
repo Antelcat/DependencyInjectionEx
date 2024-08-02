@@ -24,8 +24,6 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
 {
     private readonly CallSiteValidator? callSiteValidator;
 
-    private readonly Func<ServiceIdentifier, ServiceAccessor> createServiceAccessor;
-
     private readonly CallbackMode callbackMode;
 
     // Internal for testing
@@ -62,7 +60,6 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         // note that Root needs to be set before calling GetEngine(), because the engine may need to access Root
         Root                  = new ServiceProviderEngineScope(this, isRootScope: true);
         Engine                = GetEngine();
-        createServiceAccessor = CreateServiceAccessor;
         serviceAccessors      = new ConcurrentDictionary<ServiceIdentifier, ServiceAccessor>();
 
         CallSiteFactory = new CallSiteFactory(serviceDescriptors);
@@ -172,28 +169,39 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         }
     }
 
-    private ResolveTrigger CreateTrigger(IServiceProvider provider) => callbackMode switch
+    private ResolveCallChain CreateCallChain() => callbackMode switch
     {
-        CallbackMode.Each  => new EachResolveTrigger(OnServiceResolved, provider),
-        CallbackMode.Batch => new BatchResolveTrigger(OnServiceResolved),
+        CallbackMode.Each  => new(new EachResolveTrigger(OnServiceResolved)),
+        CallbackMode.Batch => new(new BatchResolveTrigger(OnServiceResolved)),
         _                  => throw new ArgumentException(nameof(callbackMode))
     };
 
     internal object? GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
     {
-        if (disposed)
-        {
-            ThrowHelper.ThrowObjectDisposedException();
-        }
-        ServiceAccessor serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier, createServiceAccessor);
+        if (disposed) ThrowHelper.ThrowObjectDisposedException();
+
+        ResolveCallChain? chain = null;
+
+        var serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier, (Func<ServiceIdentifier, ServiceAccessor>)Accessor);
         OnResolve(serviceAccessor.CallSite, serviceProviderEngineScope);
         DependencyInjectionEventSource.Log.ServiceResolved(this, serviceIdentifier.ServiceType);
-        var     chain  = new ResolveCallChain(CreateTrigger(serviceProviderEngineScope));
+        if (chain is null)
+        {
+            chain          = serviceAccessor.CallChain;
+            chain.Provider = serviceProviderEngineScope;
+        }
         var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope, chain);
-        object? result = serviceAccessor.RealizedService?.Invoke(wrap);
-        chain.OnResolved(serviceProviderEngineScope);
+        var result = serviceAccessor.RealizedService?.Invoke(wrap);
+        chain.OnResolved();
         Debug.Assert(result is null || CallSiteFactory.IsService(serviceIdentifier));
         return result;
+
+        ServiceAccessor Accessor(ServiceIdentifier identifier)
+        {
+            chain          = CreateCallChain();
+            chain.Provider = serviceProviderEngineScope; //map resolve time service provider
+            return CreateServiceAccessor(identifier, chain);
+        }
     }
 
     private void ValidateService(ServiceDescriptor descriptor)
@@ -214,7 +222,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         }
     }
 
-    private ServiceAccessor CreateServiceAccessor(ServiceIdentifier serviceIdentifier)
+    private ServiceAccessor CreateServiceAccessor(ServiceIdentifier serviceIdentifier, ResolveCallChain chain)
     {
         var callSite = CallSiteFactory.GetCallSite(serviceIdentifier, new CallSiteChain());
         if (callSite != null)
@@ -226,14 +234,29 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
             if (callSite.Cache.Location == CallSiteResultCacheLocation.Root)
             {
                 object? value = CallSiteRuntimeResolver.Instance.Resolve(callSite,
-                    new ServiceProviderEngineScopeWrap(Root, new ResolveCallChain(CreateTrigger(Root))));
-                return new ServiceAccessor { CallSite = callSite, RealizedService = _ => value };
+                    new ServiceProviderEngineScopeWrap(Root, chain));
+                return new ServiceAccessor
+                {
+                    CallSite        = callSite,
+                    RealizedService = _ => value,
+                    CallChain       = chain
+                };
             }
 
             ServiceResolveHandler realizedService = Engine.RealizeService(callSite);
-            return new ServiceAccessor { CallSite = callSite, RealizedService = realizedService };
+            return new ServiceAccessor { 
+                CallSite = callSite, 
+                RealizedService = realizedService ,
+                CallChain = chain
+            };
         }
-        return new ServiceAccessor { CallSite = callSite, RealizedService = _ => null };
+
+        return new ServiceAccessor
+        {
+            CallSite        = callSite,
+            RealizedService = _ => null,
+            CallChain       = chain
+        };
     }
 
     internal void ReplaceServiceAccessor(ServiceCallSite callSite, ServiceResolveHandler accessor)
@@ -241,7 +264,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         serviceAccessors[new ServiceIdentifier(callSite.Key, callSite.ServiceType)] = new ServiceAccessor
         {
             CallSite        = callSite,
-            RealizedService = accessor
+            RealizedService = accessor,
+            CallChain       = CreateCallChain()
         };
     }
 
@@ -294,5 +318,7 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
     {
         public ServiceCallSite?       CallSite        { get; set; }
         public ServiceResolveHandler? RealizedService { get; set; }
+        
+        public required ResolveCallChain CallChain { get; set; }
     }
 }
