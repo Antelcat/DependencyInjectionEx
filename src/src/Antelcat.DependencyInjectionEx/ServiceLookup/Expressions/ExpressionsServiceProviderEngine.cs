@@ -6,12 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
-internal sealed class ExpressionsServiceProviderEngine(ServiceProvider serviceProvider) : ServiceProviderEngine
+internal sealed class ExpressionsServiceProviderEngine(ServiceProviderEx serviceProvider) : ServiceProviderEngine
 {
     private readonly ExpressionResolverBuilder expressionResolverBuilder = new(serviceProvider);
 
-    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
-    {
-            return expressionResolverBuilder.Build(callSite);
-        }
+    public override ServiceResolveHandler RealizeService(ServiceCallSite callSite) => expressionResolverBuilder.Build(callSite);
 }

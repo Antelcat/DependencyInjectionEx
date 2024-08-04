@@ -18,20 +18,26 @@ public class Service<T> : IDisposable
         Console.WriteLine(this);
     }
 
-    private static readonly IEnumerable<(string Name, Func<object, object?> Getter)> Autowires =
+    private static readonly IEnumerable<Action<object>> Checks =
         typeof(T).GetProperties()
             .Where(static x => x is { CanRead: true, CanWrite: true })
             .Where(static x => x.GetCustomAttribute<AutowiredAttribute>() != null)
-            .Select(static x => (x.Name, (Func<object, object?>)x.GetValue))
+            .Select(static x => new Action<object>(target =>
+            {
+                Assert.That(x.GetValue(target), Is.Not.Null, $"{target}.{x.Name} is null");
+            }))
             .Concat(typeof(T).GetFields()
                 .Where(static x => x.GetCustomAttribute<AutowiredAttribute>() != null)
-                .Select(static x => (x.Name, (Func<object, object?>)x.GetValue)));
+                .Select(static x => new Action<object>(target =>
+                {
+                    Assert.That(x.GetValue(target), Is.Not.Null, $"{target}.{x.Name} is null");
+                })));
 
     [Autowired]
     public required IResolvable<T> Resolvable { get; set; }
     
     public void Check()
     {
-        foreach (var autowire in Autowires) Assert.That(autowire.Getter(this), Is.Not.Null, $"{this}.{autowire.Name} is null");
+        foreach (var check in Checks) check(this);
     }
 }

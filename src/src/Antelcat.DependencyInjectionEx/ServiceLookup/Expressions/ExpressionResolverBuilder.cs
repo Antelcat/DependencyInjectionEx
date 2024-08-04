@@ -15,7 +15,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expression>
 {
     private static readonly ParameterExpression ScopeParameter =
-        Expression.Parameter(typeof(IServiceProviderEngineScope));
+        Expression.Parameter(typeof(ServiceProviderEngineScopeWrap));
 
     private static readonly ParameterExpression ResolvedServices =
         Expression.Variable(typeof(IDictionary<ServiceCacheKey, object>), ScopeParameter.Name + "resolvedServices");
@@ -53,11 +53,11 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
 
     private readonly Func<ServiceCacheKey, ServiceCallSite, ServiceResolveHandler> buildTypeDelegate;
 
-    public ExpressionResolverBuilder(ServiceProvider serviceProvider)
+    public ExpressionResolverBuilder(ServiceProviderEx serviceProvider)
     {
         rootScope          = serviceProvider.Root;
         scopeResolverCache = new ConcurrentDictionary<ServiceCacheKey, ServiceResolveHandler>();
-        buildTypeDelegate  = (key, cs) => BuildNoCache(cs);
+        buildTypeDelegate  = (_, cs) => BuildNoCache(cs);
     }
 
     public ServiceResolveHandler Build(ServiceCallSite callSite)
@@ -77,49 +77,36 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
 
     public ServiceResolveHandler BuildNoCache(ServiceCallSite callSite)
     {
-        Expression<ServiceResolveHandler> expression = BuildExpression(callSite);
-        DependencyInjectionEventSource.Log.ExpressionTreeGenerated(rootScope.RootProvider, callSite.ServiceType,
+        var expression = BuildExpression(callSite);
+        DependencyInjectionEventSource.Log.ExpressionTreeGenerated(rootScope.RootProviderEx, callSite.ServiceType,
             expression);
         return expression.Compile();
     }
 
-    private Expression<ServiceResolveHandler> BuildExpression(ServiceCallSite callSite)
-    {
-        if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
-        {
-            return Expression.Lambda<ServiceResolveHandler>(
+    private Expression<ServiceResolveHandler> BuildExpression(ServiceCallSite callSite) =>
+        callSite.Cache.Location == CallSiteResultCacheLocation.Scope
+            ? Expression.Lambda<ServiceResolveHandler>(
                 Expression.Block(
                     new[] { ResolvedServices, Sync },
                     ResolvedServicesVariableAssignment,
                     SyncVariableAssignment,
                     BuildScopedExpression(callSite)),
+                ScopeParameter)
+            : Expression.Lambda<ServiceResolveHandler>(
+                Convert(VisitCallSite(callSite, null), typeof(object), forceValueTypeConversion: true),
                 ScopeParameter);
-        }
 
-        return Expression.Lambda<ServiceResolveHandler>(
-            Convert(VisitCallSite(callSite, null), typeof(object), forceValueTypeConversion: true),
-            ScopeParameter);
-    }
+    protected override Expression VisitRootCache(ServiceCallSite singletonCallSite, object? context) => 
+        Expression.Constant(CallSiteRuntimeResolver.Instance.Resolve(singletonCallSite, rootScope));
 
-    protected override Expression VisitRootCache(ServiceCallSite singletonCallSite, object? context)
-    {
-        return Expression.Constant(CallSiteRuntimeResolver.Instance.Resolve(singletonCallSite, rootScope));
-    }
+    protected override Expression VisitConstant(ConstantCallSite constantCallSite, object? context) => 
+        Expression.Constant(constantCallSite.DefaultValue);
 
-    protected override Expression VisitConstant(ConstantCallSite constantCallSite, object? context)
-    {
-        return Expression.Constant(constantCallSite.DefaultValue);
-    }
+    protected override Expression VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, object? context) => 
+        ScopeParameter;
 
-    protected override Expression VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, object? context)
-    {
-        return ScopeParameter;
-    }
-
-    protected override Expression VisitFactory(FactoryCallSite factoryCallSite, object? context)
-    {
-        return Expression.Invoke(Expression.Constant(factoryCallSite.Factory), ScopeParameter);
-    }
+    protected override Expression VisitFactory(FactoryCallSite factoryCallSite, object? context) => 
+        Expression.Invoke(Expression.Constant(factoryCallSite.Factory), ScopeParameter);
 
     protected override Expression VisitIEnumerable(IEnumerableCallSite callSite, object? context)
     {
@@ -127,7 +114,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             Justification = "VerifyAotCompatibility ensures elementType is not a ValueType")]
         static MethodInfo GetArrayEmptyMethodInfo(Type elementType)
         {
-            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType,
+            Debug.Assert(!ServiceProviderEx.VerifyAotCompatibility || !elementType.IsValueType,
                 "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
 
             return ServiceLookupHelpers.GetArrayEmptyMethodInfo(elementType);
@@ -137,18 +124,16 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
             Justification = "VerifyAotCompatibility ensures elementType is not a ValueType")]
         static NewArrayExpression NewArrayInit(Type elementType, IEnumerable<Expression> expr)
         {
-            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType,
+            Debug.Assert(!ServiceProviderEx.VerifyAotCompatibility || !elementType.IsValueType,
                 "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
 
             return Expression.NewArrayInit(elementType, expr);
         }
 
         if (callSite.ServiceCallSites.Length == 0)
-        {
             return Expression.Constant(
                 GetArrayEmptyMethodInfo(callSite.ItemType)
                     .Invoke(obj: null, parameters: Array.Empty<object>()));
-        }
 
         return NewArrayInit(
             callSite.ItemType,
@@ -158,20 +143,16 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
                     callSite.ItemType)));
     }
 
-    protected override Expression VisitDisposeCache(ServiceCallSite callSite, object? context)
-    {
+    protected override Expression VisitDisposeCache(ServiceCallSite callSite, object? context) =>
         // Elide calls to GetCaptureDisposable if the implementation type isn't disposable
-        return TryCaptureDisposable(
+        TryCaptureDisposable(
             callSite,
             ScopeParameter,
             VisitCallSiteMain(callSite, context));
-    }
 
     private static Expression TryCaptureDisposable(ServiceCallSite callSite, ParameterExpression scope,
-        Expression service)
-    {
-        return !callSite.CaptureDisposable ? service : Expression.Invoke(GetCaptureDisposable(scope), service);
-    }
+        Expression service) =>
+        !callSite.CaptureDisposable ? service : Expression.Invoke(GetCaptureDisposable(scope), service);
 
     protected override Expression VisitConstructor(ConstructorCallSite callSite, object? context)
     {
@@ -192,25 +173,26 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         }
 
         Expression expression = Expression.New(callSite.ConstructorInfo, parameterExpressions);
-        if (callSite.ImplementationType!.IsValueType)
-        {
-            expression = Expression.Convert(expression, typeof(object));
-        }
+        if (callSite.ImplementationType!.IsValueType) expression = Expression.Convert(expression, typeof(object));
 
         return expression;
     }
 
-    private static Expression Convert(Expression expression, Type type, bool forceValueTypeConversion = false)
+    protected override Expression VisitCallback(Expression result, ServiceCallSite callSite, object? context)
     {
-        // Don't convert if the expression is already assignable
-        if (type.IsAssignableFrom(expression.Type)
-            && (!expression.Type.IsValueType || !forceValueTypeConversion))
+        if (callSite.NeedReport)
         {
-            return expression;
+            
         }
 
-        return Expression.Convert(expression, type);
+        return result;
     }
+
+    private static Expression Convert(Expression expression, Type type, bool forceValueTypeConversion = false) =>
+        // Don't convert if the expression is already assignable
+        type.IsAssignableFrom(expression.Type) && (!expression.Type.IsValueType || !forceValueTypeConversion)
+            ? expression
+            : Expression.Convert(expression, type);
 
     protected override Expression VisitScopeCache(ServiceCallSite callSite, object? context)
     {
@@ -301,13 +283,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         );
     }
 
-    public static Expression GetCaptureDisposable(ParameterExpression scope)
-    {
-        if (scope != ScopeParameter)
-        {
-            throw new NotSupportedException(SR.GetCaptureDisposableNotSupported);
-        }
-
-        return CaptureDisposable;
-    }
+    public static Expression GetCaptureDisposable(ParameterExpression scope) =>
+        scope != ScopeParameter
+            ? throw new NotSupportedException(SR.GetCaptureDisposableNotSupported)
+            : CaptureDisposable;
 }

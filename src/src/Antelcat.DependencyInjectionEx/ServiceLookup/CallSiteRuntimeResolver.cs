@@ -17,33 +17,27 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
 {
     public static CallSiteRuntimeResolver Instance { get; } = new();
 
-    private CallSiteRuntimeResolver()
-    {
-    }
+    private CallSiteRuntimeResolver() { }
 
     public object? Resolve(ServiceCallSite callSite, IServiceProviderEngineScope scope)
     {
         // Fast path to avoid virtual calls if we already have the cached value in the root scope
-        if (scope.IsRootScope && callSite.Value is { } cached)
-        {
-            return cached;
-        }
+        if (scope.IsRootScope && callSite.Value is { } cached) return cached;
 
-        var ret = VisitCallSite(callSite, new RuntimeResolverContext
+        return VisitCallSite(callSite, new RuntimeResolverContext
         {
             Scope     = scope,
             CallChain = (scope as ServiceProviderEngineScopeWrap)?.CallChain
         });
-        return ret;
     }
 
-    protected override object? VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context)
-    {
-        return context.Scope.CaptureDisposable(VisitCallSiteMain(transientCallSite, context));
-    }
+    protected override object? VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context) => 
+        context.Scope.CaptureDisposable(VisitCallSiteMain(transientCallSite, context));
 
-    protected override object? VisitCallback(object? result, ServiceCallSite callSite, RuntimeResolverContext argument) => 
-        argument.CallChain is not null ? argument.CallChain.PostResolve(result, callSite) : result;
+    protected override object? VisitCallback(object? result, ServiceCallSite callSite, RuntimeResolverContext argument) =>
+        callSite.NeedReport && argument.CallChain is not null
+            ? argument.CallChain.PostResolve(result, callSite)
+            : result;
 
     protected override object VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)
     {
@@ -90,7 +84,7 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
         }
 
         const RuntimeResolverLock   lockType              = RuntimeResolverLock.Root;
-        IServiceProviderEngineScope serviceProviderEngine = context.Scope.RootProvider.Root;
+        IServiceProviderEngineScope serviceProviderEngine = context.Scope.RootProviderEx.Root;
 
         lock (callSite)
         {
@@ -182,13 +176,13 @@ internal sealed class CallSiteRuntimeResolver : CallSiteVisitor<RuntimeResolverC
             object? value = VisitCallSite(enumerableCallSite.ServiceCallSites[index], context);
             array.SetValue(value, index);
         }
-        return context.CallChain is not null ? context.CallChain.PostResolve(array, enumerableCallSite) : array;
-
+        return array;
+        
         [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
             Justification = "VerifyAotCompatibility ensures elementType is not a ValueType")]
         static Array CreateArray(Type elementType, int length)
         {
-            Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !elementType.IsValueType, "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
+            Debug.Assert(!ServiceProviderEx.VerifyAotCompatibility || !elementType.IsValueType, "VerifyAotCompatibility=true will throw during building the IEnumerableCallSite if elementType is a ValueType.");
 
             return Array.CreateInstance(elementType, length);
         }

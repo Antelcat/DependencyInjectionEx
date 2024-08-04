@@ -24,7 +24,7 @@ internal interface IServiceProviderEngineScope :
 
     public bool IsRootScope { get; }
 
-    internal ServiceProvider RootProvider { get; }
+    internal ServiceProviderEx RootProviderEx { get; }
 
     [return: NotNullIfNotNull(nameof(service))]
     internal object? CaptureDisposable(object? service);
@@ -32,7 +32,7 @@ internal interface IServiceProviderEngineScope :
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(ServiceProviderEngineScopeDebugView))]
-internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool isRootScope)
+internal sealed class ServiceProviderEngineScope(ServiceProviderEx providerEx, bool isRootScope)
     : IServiceProviderEngineScope
 {
     // For testing and debugging only
@@ -52,32 +52,32 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
 
     public bool IsRootScope { get; } = isRootScope;
 
-    public ServiceProvider RootProvider { get; } = provider;
+    public ServiceProviderEx RootProviderEx { get; } = providerEx;
 
     public object? GetService(Type serviceType)
     {
         if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-        return RootProvider.GetService(ServiceIdentifier.FromServiceType(serviceType), this);
+        return RootProviderEx.GetService(ServiceIdentifier.FromServiceType(serviceType), this);
     }
 
     public object? GetKeyedService(Type serviceType, object? serviceKey)
     {
         if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-        return RootProvider.GetKeyedService(serviceType, serviceKey, this);
+        return RootProviderEx.GetKeyedService(serviceType, serviceKey, this);
     }
 
     public object GetRequiredKeyedService(Type serviceType, object? serviceKey)
     {
         if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-        return RootProvider.GetRequiredKeyedService(serviceType, serviceKey, this);
+        return RootProviderEx.GetRequiredKeyedService(serviceType, serviceKey, this);
     }
 
     public IServiceProvider ServiceProvider => this;
 
-    public IServiceScope CreateScope() => RootProvider.CreateScope();
+    public IServiceScope CreateScope() => RootProviderEx.CreateScope();
 
     [return: NotNullIfNotNull(nameof(service))]
     public object? CaptureDisposable(object? service)
@@ -206,7 +206,7 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
             }
 
             // Track statistics about the scope (number of disposable objects and number of disposed services)
-            DependencyInjectionEventSource.Log.ScopeDisposed(RootProvider.GetHashCode(), ResolvedServices.Count,
+            DependencyInjectionEventSource.Log.ScopeDisposed(RootProviderEx.GetHashCode(), ResolvedServices.Count,
                 disposables?.Count ?? 0);
 
             // We've transitioned to the disposed state, so future calls to
@@ -215,12 +215,12 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
             disposed = true;
         }
 
-        if (IsRootScope && !RootProvider.IsDisposed())
+        if (IsRootScope && !RootProviderEx.IsDisposed())
         {
             // If this ServiceProviderEngineScope instance is a root scope, disposing this instance will need to dispose the RootProvider too.
             // Otherwise the RootProvider will never get disposed and will leak.
             // Note, if the RootProvider get disposed first, it will automatically dispose all attached ServiceProviderEngineScope objects.
-            RootProvider.Dispose();
+            RootProviderEx.Dispose();
         }
 
         // ResolvedServices is never cleared for singletons because there might be a compilation running in background
@@ -231,7 +231,7 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
 
     internal string DebuggerToString()
     {
-        string debugText = $"ServiceDescriptors = {RootProvider.CallSiteFactory.Descriptors.Length}";
+        string debugText = $"ServiceDescriptors = {RootProviderEx.CallSiteFactory.Descriptors.Length}";
         if (!IsRootScope)
         {
             debugText += $", IsScope = true";
@@ -248,7 +248,7 @@ internal sealed class ServiceProviderEngineScope(ServiceProvider provider, bool 
     private sealed class ServiceProviderEngineScopeDebugView(ServiceProviderEngineScope serviceProvider)
     {
         public List<ServiceDescriptor> ServiceDescriptors =>
-            [..serviceProvider.RootProvider.CallSiteFactory.Descriptors];
+            [..serviceProvider.RootProviderEx.CallSiteFactory.Descriptors];
 
         public List<object> Disposables => [..serviceProvider.Disposables];
         public bool         Disposed    => serviceProvider.disposed;
@@ -285,7 +285,7 @@ internal sealed class ServiceProviderEngineScopeWrap(ServiceProviderEngineScope 
 
     public bool IsRootScope => scope.IsRootScope;
 
-    public ServiceProvider RootProvider => scope.RootProvider;
+    public ServiceProviderEx RootProviderEx => scope.RootProviderEx;
 
     [return: NotNullIfNotNull(nameof(service))]
     public object? CaptureDisposable(object? service) => scope.CaptureDisposable(service);

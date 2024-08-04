@@ -8,13 +8,10 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 internal abstract class CallSiteVisitor<TArgument, TResult>
 {
     private readonly StackGuard stackGuard = new();
-    
+
     protected virtual TResult VisitCallSite(ServiceCallSite callSite, TArgument argument)
     {
-        if (!stackGuard.TryEnterOnCurrentStack())
-        {
-            return stackGuard.RunOnEmptyStack(VisitCallSite, callSite, argument);
-        }
+        if (!stackGuard.TryEnterOnCurrentStack()) return stackGuard.RunOnEmptyStack(VisitCallSite, callSite, argument);
 
         return callSite.Cache.Location switch
         {
@@ -27,29 +24,28 @@ internal abstract class CallSiteVisitor<TArgument, TResult>
     }
 
     protected virtual TResult VisitCallSiteMain(ServiceCallSite callSite, TArgument argument) =>
-        callSite.Kind switch
-        {
-            CallSiteKind.Factory => VisitFactory((FactoryCallSite)callSite, argument),
-            CallSiteKind.IEnumerable => VisitCallback(VisitIEnumerable((IEnumerableCallSite)callSite, argument),
-                callSite, argument),
-            CallSiteKind.Constructor => VisitCallback(
-                VisitConstructor((ConstructorCallSite)callSite, argument), callSite, argument),
-            CallSiteKind.Constant        => VisitConstant((ConstantCallSite)callSite, argument),
-            CallSiteKind.ServiceProvider => VisitServiceProvider((ServiceProviderCallSite)callSite, argument),
+        VisitCallback(callSite.Kind switch
+            {
+                CallSiteKind.Factory         => VisitFactory((FactoryCallSite)callSite, argument),
+                CallSiteKind.IEnumerable     => VisitIEnumerable((IEnumerableCallSite)callSite, argument),
+                CallSiteKind.Constructor     => VisitConstructor((ConstructorCallSite)callSite, argument),
+                CallSiteKind.Constant        => VisitConstant((ConstantCallSite)callSite, argument),
+                CallSiteKind.ServiceProvider => VisitServiceProvider((ServiceProviderCallSite)callSite, argument),
 
-            _ => throw new NotSupportedException(SR.Format(SR.CallSiteTypeNotSupported, callSite.GetType()))
-        };
+                _ => throw new NotSupportedException(SR.Format(SR.CallSiteTypeNotSupported, callSite.GetType()))
+            },
+            callSite, argument);
 
-    protected virtual TResult VisitNoCache(ServiceCallSite callSite, TArgument argument) => 
+    protected virtual TResult VisitNoCache(ServiceCallSite callSite, TArgument argument) =>
         VisitCallSiteMain(callSite, argument);
 
-    protected virtual TResult VisitDisposeCache(ServiceCallSite callSite, TArgument argument) => 
+    protected virtual TResult VisitDisposeCache(ServiceCallSite callSite, TArgument argument) =>
         VisitCallSiteMain(callSite, argument);
 
-    protected virtual TResult VisitRootCache(ServiceCallSite callSite, TArgument argument) => 
+    protected virtual TResult VisitRootCache(ServiceCallSite callSite, TArgument argument) =>
         VisitCallSiteMain(callSite, argument);
 
-    protected virtual TResult VisitScopeCache(ServiceCallSite callSite, TArgument argument) => 
+    protected virtual TResult VisitScopeCache(ServiceCallSite callSite, TArgument argument) =>
         VisitCallSiteMain(callSite, argument);
 
     protected virtual TResult VisitCallback(TResult result, ServiceCallSite callSite, TArgument argument) => result;
@@ -58,7 +54,8 @@ internal abstract class CallSiteVisitor<TArgument, TResult>
 
     protected abstract TResult VisitConstant(ConstantCallSite constantCallSite, TArgument argument);
 
-    protected abstract TResult VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, TArgument argument);
+    protected abstract TResult
+        VisitServiceProvider(ServiceProviderCallSite serviceProviderCallSite, TArgument argument);
 
     protected abstract TResult VisitIEnumerable(IEnumerableCallSite enumerableCallSite, TArgument argument);
 

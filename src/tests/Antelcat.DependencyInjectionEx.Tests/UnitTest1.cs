@@ -6,25 +6,24 @@ namespace Antelcat.DependencyInjectionEx.Tests;
 
 public class Tests
 {
-    private ServiceProvider provider;
+    private ServiceProviderEx provider;
     
     [SetUp]
     public void Setup()
     {
         provider = new ServiceCollection()
-            .AddTransient(typeof(IResolvable<>),typeof(Resolvable<>))
+            .AddTransient(typeof(IResolvable<>), typeof(Resolvable<>))
             .AddSingleton(typeof(IA), typeof(A))
             .AddScoped<IB, B>()
             .AddTransient<IC, C>()
             .AddTransient(typeof(D))
             .BuildAutowiredServiceProviderEx(new ServiceProviderOptions
             {
-                CallbackMode = CallbackMode.Batch
+                CallbackTime = CallbackTime.Finally,
             });
-        provider.ServiceResolved += (_, _, instance, kind) =>
+        provider.ServiceConstructed += (_, _, instance, kind) =>
         {
             Console.WriteLine($"{kind} {instance}");
-            //Assert.That(kind, Is.EqualTo(ServiceResolveKind.Constructor));
         };
     }
 

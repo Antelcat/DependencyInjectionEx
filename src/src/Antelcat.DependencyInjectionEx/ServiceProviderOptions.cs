@@ -25,7 +25,12 @@ public class ServiceProviderOptions
     public bool ValidateOnBuild { get; set; }
 
     /// <summary>
-    /// Decide how to trigger <see cref="ServiceProvider"/>.<see cref="ServiceProvider.ServiceResolved"/> default is <see cref="CallbackMode.Batch"/>
+    /// Determined kind of service resolve when listening to <see cref="ServiceProviderEx.ServiceConstructed"/> event. Default is <see cref="ServiceResolveKind.None"/>.
     /// </summary>
-    public CallbackMode CallbackMode { get; set; } = CallbackMode.Batch;
+    public ServiceResolveKind ListenKind { get; set; } = ServiceResolveKind.None;
+    
+    /// <summary>
+    /// Determined when to trigger <see cref="ServiceProviderEx"/>.<see cref="ServiceProviderEx.ServiceConstructed"/>. Default is <see cref="CallbackTime.Finally"/>.
+    /// </summary>
+    public CallbackTime CallbackTime { get; set; } = CallbackTime.Finally;
 }

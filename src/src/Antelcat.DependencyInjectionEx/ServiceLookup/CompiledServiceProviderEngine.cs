@@ -7,12 +7,12 @@ using System.Diagnostics.CodeAnalysis;
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 [method: RequiresDynamicCode("Creates DynamicMethods")]
-internal abstract class CompiledServiceProviderEngine(ServiceProvider provider) : ServiceProviderEngine
+internal abstract class CompiledServiceProviderEngine(ServiceProviderEx providerEx) : ServiceProviderEngine
 {
 #if IL_EMIT
-    public ILEmitResolverBuilder ResolverBuilder { get; } = new(provider);
+    public ILEmitResolverBuilder ResolverBuilder { get; } = new(providerEx);
 #else
-        public ExpressionResolverBuilder ResolverBuilder { get; }
+    public ExpressionResolverBuilder ResolverBuilder { get; } = new(providerEx);
 #endif
 
     public override ServiceResolveHandler RealizeService(ServiceCallSite callSite) => ResolverBuilder.Build(callSite);

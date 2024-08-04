@@ -26,7 +26,7 @@ internal sealed class DependencyInjectionEventSource : EventSource
     // Event source doesn't support large payloads so we chunk large payloads like formatted call site tree and descriptors
     private const int MaxChunkSize = 10 * 1024;
 
-    private readonly List<WeakReference<ServiceProvider>> providers = [];
+    private readonly List<WeakReference<ServiceProviderEx>> providers = [];
 
     private DependencyInjectionEventSource() : base(EventSourceSettings.EtwSelfDescribingEventFormat)
     {
@@ -99,23 +99,23 @@ internal sealed class DependencyInjectionEventSource : EventSource
     }
 
     [NonEvent]
-    public void ServiceResolved(ServiceProvider provider, Type serviceType)
+    public void ServiceResolved(ServiceProviderEx providerEx, Type serviceType)
     {
         if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
         {
-            ServiceResolved(serviceType.ToString(), provider.GetHashCode());
+            ServiceResolved(serviceType.ToString(), providerEx.GetHashCode());
         }
     }
 
     [NonEvent]
-    public void CallSiteBuilt(ServiceProvider provider, Type serviceType, ServiceCallSite callSite)
+    public void CallSiteBuilt(ServiceProviderEx providerEx, Type serviceType, ServiceCallSite callSite)
     {
         if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
         {
             string format     = CallSiteJsonFormatter.Instance.Format(callSite);
             int    chunkCount = format.Length / MaxChunkSize + (format.Length % MaxChunkSize > 0 ? 1 : 0);
 
-            int providerHashCode = provider.GetHashCode();
+            int providerHashCode = providerEx.GetHashCode();
             for (int i = 0; i < chunkCount; i++)
             {
                 CallSiteBuilt(
@@ -128,11 +128,11 @@ internal sealed class DependencyInjectionEventSource : EventSource
     }
 
     [NonEvent]
-    public void DynamicMethodBuilt(ServiceProvider provider, Type serviceType, int methodSize)
+    public void DynamicMethodBuilt(ServiceProviderEx providerEx, Type serviceType, int methodSize)
     {
         if (IsEnabled(EventLevel.Verbose, EventKeywords.All))
         {
-            DynamicMethodBuilt(serviceType.ToString(), methodSize, provider.GetHashCode());
+            DynamicMethodBuilt(serviceType.ToString(), methodSize, providerEx.GetHashCode());
         }
     }
 
@@ -146,26 +146,26 @@ internal sealed class DependencyInjectionEventSource : EventSource
     }
 
     [NonEvent]
-    public void ServiceProviderBuilt(ServiceProvider provider)
+    public void ServiceProviderBuilt(ServiceProviderEx providerEx)
     {
         lock (providers)
         {
-            providers.Add(new WeakReference<ServiceProvider>(provider));
+            providers.Add(new WeakReference<ServiceProviderEx>(providerEx));
         }
 
-        WriteServiceProviderBuilt(provider);
+        WriteServiceProviderBuilt(providerEx);
     }
 
     [NonEvent]
-    public void ServiceProviderDisposed(ServiceProvider provider)
+    public void ServiceProviderDisposed(ServiceProviderEx providerEx)
     {
         lock (providers)
         {
             for (int i = providers.Count - 1; i >= 0; i--)
             {
                 // remove the provider, along with any stale references
-                WeakReference<ServiceProvider> reference = providers[i];
-                if (!reference.TryGetTarget(out ServiceProvider? target) || target == provider)
+                WeakReference<ServiceProviderEx> reference = providers[i];
+                if (!reference.TryGetTarget(out ServiceProviderEx? target) || target == providerEx)
                 {
                     providers.RemoveAt(i);
                 }
@@ -174,7 +174,7 @@ internal sealed class DependencyInjectionEventSource : EventSource
     }
 
     [NonEvent]
-    private void WriteServiceProviderBuilt(ServiceProvider provider)
+    private void WriteServiceProviderBuilt(ServiceProviderEx providerEx)
     {
         if (!IsEnabled(EventLevel.Informational, Keywords.ServiceProviderInitialized)) return;
         int singletonServices      = 0;
@@ -185,7 +185,7 @@ internal sealed class DependencyInjectionEventSource : EventSource
 
         StringBuilder descriptorBuilder = new StringBuilder("{ \"descriptors\":[ ");
         bool          firstDescriptor   = true;
-        foreach (ServiceDescriptor descriptor in provider.CallSiteFactory.Descriptors)
+        foreach (ServiceDescriptor descriptor in providerEx.CallSiteFactory.Descriptors)
         {
             if (firstDescriptor)
             {
@@ -218,7 +218,7 @@ internal sealed class DependencyInjectionEventSource : EventSource
 
         descriptorBuilder.Append(" ] }");
 
-        int providerHashCode = provider.GetHashCode();
+        int providerHashCode = providerEx.GetHashCode();
         ServiceProviderBuilt(providerHashCode, singletonServices, scopedServices, transientServices,
             closedGenericsServices, openGenericsServices);
 
@@ -290,9 +290,9 @@ internal sealed class DependencyInjectionEventSource : EventSource
 
         lock (providers)
         {
-            foreach (WeakReference<ServiceProvider> reference in providers)
+            foreach (WeakReference<ServiceProviderEx> reference in providers)
             {
-                if (reference.TryGetTarget(out ServiceProvider? provider))
+                if (reference.TryGetTarget(out ServiceProviderEx? provider))
                 {
                     WriteServiceProviderBuilt(provider);
                 }
@@ -306,13 +306,13 @@ internal static class DependencyInjectionEventSourceExtensions
     // This is an extension method because this assembly is trimmed at a "type granular" level in Blazor,
     // and the whole DependencyInjectionEventSource type can't be trimmed. So extracting this to a separate
     // type allows for the System.Linq.Expressions usage to be trimmed by the ILLinker.
-    public static void ExpressionTreeGenerated(this DependencyInjectionEventSource source, ServiceProvider provider,
+    public static void ExpressionTreeGenerated(this DependencyInjectionEventSource source, ServiceProviderEx providerEx,
         Type serviceType, Expression expression)
     {
         if (!source.IsEnabled(EventLevel.Verbose, EventKeywords.All)) return;
         var visitor = new NodeCountingVisitor();
         visitor.Visit(expression);
-        source.ExpressionTreeGenerated(serviceType.ToString(), visitor.NodeCount, provider.GetHashCode());
+        source.ExpressionTreeGenerated(serviceType.ToString(), visitor.NodeCount, providerEx.GetHashCode());
     }
 
     private sealed class NodeCountingVisitor : ExpressionVisitor

@@ -13,9 +13,12 @@ internal sealed class IEnumerableCallSite : ServiceCallSite
     internal Type              ItemType         { get; }
     internal ServiceCallSite[] ServiceCallSites { get; }
 
-    public IEnumerableCallSite(ResultCache cache, Type itemType, ServiceCallSite[] serviceCallSites) : base(cache)
+    public IEnumerableCallSite(ResultCache cache,
+        Func<CallSiteKind, bool> reportSelector,
+        Type itemType,
+        ServiceCallSite[] serviceCallSites) : base(cache, reportSelector)
     {
-        Debug.Assert(!ServiceProvider.VerifyAotCompatibility || !itemType.IsValueType,
+        Debug.Assert(!ServiceProviderEx.VerifyAotCompatibility || !itemType.IsValueType,
             "If VerifyAotCompatibility=true, an IEnumerableCallSite should not be created with a ValueType.");
 
         ItemType         = itemType;

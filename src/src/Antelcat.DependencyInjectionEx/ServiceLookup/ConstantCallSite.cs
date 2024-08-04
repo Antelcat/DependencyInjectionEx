@@ -10,12 +10,14 @@ internal sealed class ConstantCallSite : ServiceCallSite
     private readonly Type    serviceType;
     internal         object? DefaultValue => Value;
 
-    public ConstantCallSite(Type serviceType, object? defaultValue) : base(ResultCache.None(serviceType))
+    public ConstantCallSite(Func<CallSiteKind, bool> reportSelector, Type serviceType, object? defaultValue)
+        : base(ResultCache.None(serviceType), reportSelector)
     {
         this.serviceType = serviceType ?? throw new ArgumentNullException(nameof(serviceType));
         if (defaultValue != null && !serviceType.IsInstanceOfType(defaultValue))
         {
-            throw new ArgumentException(SR.Format(SR.ConstantCantBeConvertedToServiceType, defaultValue.GetType(), serviceType));
+            throw new ArgumentException(SR.Format(SR.ConstantCantBeConvertedToServiceType, defaultValue.GetType(),
+                serviceType));
         }
 
         Value = defaultValue;

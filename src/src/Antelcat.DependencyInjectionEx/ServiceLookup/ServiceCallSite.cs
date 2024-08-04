@@ -10,7 +10,7 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 /// <summary>
 /// Summary description for ServiceCallSite
 /// </summary>
-internal abstract class ServiceCallSite(ResultCache cache)
+internal abstract class ServiceCallSite(ResultCache cache, Func<CallSiteKind, bool> reportSelector)
 {
     public abstract Type         ServiceType        { get; }
     public abstract Type?        ImplementationType { get; }
@@ -18,7 +18,9 @@ internal abstract class ServiceCallSite(ResultCache cache)
     public          ResultCache  Cache              { get; } = cache;
     public          object?      Value              { get; set; }
     public          object?      Key                { get; set; }
-  
+    public          bool         NeedReport         => reportSelector(Kind);
+
+
     public bool CaptureDisposable =>
         ImplementationType == null                               ||
         typeof(IDisposable).IsAssignableFrom(ImplementationType) ||

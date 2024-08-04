@@ -9,14 +9,20 @@ internal sealed class FactoryCallSite : ServiceCallSite
 {
     public Func<IServiceProvider, object> Factory { get; }
 
-    public FactoryCallSite(ResultCache cache, Type serviceType, Func<IServiceProvider, object> factory) : base(cache)
+    public FactoryCallSite(ResultCache cache,
+        Func<CallSiteKind, bool> reportSelector,
+        Type serviceType,
+        Func<IServiceProvider, object> factory) : base(cache, reportSelector)
     {
         Factory     = factory;
         ServiceType = serviceType;
     }
 
-    public FactoryCallSite(ResultCache cache, Type serviceType, object serviceKey,
-        Func<IServiceProvider, object, object> factory) : base(cache)
+    public FactoryCallSite(ResultCache cache, 
+        Func<CallSiteKind, bool> reportSelector, 
+        Type serviceType,
+        object serviceKey,
+        Func<IServiceProvider, object, object> factory) : base(cache, reportSelector)
     {
         Factory     = sp => factory(sp, serviceKey);
         ServiceType = serviceType;

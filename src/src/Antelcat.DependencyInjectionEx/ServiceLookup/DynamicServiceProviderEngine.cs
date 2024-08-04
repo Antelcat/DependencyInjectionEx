@@ -9,10 +9,10 @@ using System.Threading;
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 [method: RequiresDynamicCode("Creates DynamicMethods")]
-internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvider)
+internal sealed class DynamicServiceProviderEngine(ServiceProviderEx serviceProvider)
     : CompiledServiceProviderEngine(serviceProvider)
 {
-    private readonly ServiceProvider serviceProvider = serviceProvider;
+    private readonly ServiceProviderEx serviceProvider = serviceProvider;
 
     public override ServiceResolveHandler RealizeService(ServiceCallSite callSite)
     {
@@ -31,7 +31,7 @@ internal sealed class DynamicServiceProviderEngine(ServiceProvider serviceProvid
                     {
                         try
                         {
-                            serviceProvider.ReplaceServiceAccessor(callSite, base.RealizeService(callSite));
+                            serviceProvider.ReplaceServiceAccessor(callSite, base.RealizeService(callSite), scope);
                         }
                         catch (Exception ex)
                         {

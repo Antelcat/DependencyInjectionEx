@@ -20,11 +20,11 @@ namespace Antelcat.DependencyInjectionEx;
 /// </summary>
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 [DebuggerTypeProxy(typeof(ServiceProviderDebugView))]
-public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, IDisposable, IAsyncDisposable
+public sealed class ServiceProviderEx : IServiceProvider, IKeyedServiceProvider, IDisposable, IAsyncDisposable
 {
     private readonly CallSiteValidator? callSiteValidator;
 
-    private readonly CallbackMode callbackMode;
+    private readonly CallbackTime callbackTime;
 
     // Internal for testing
     internal readonly ServiceProviderEngine Engine;
@@ -37,10 +37,11 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
 
     internal ServiceProviderEngineScope Root { get; }
 
-    public event ServiceResolvedHandler? ServiceResolved;
+    public event ServiceResolvedHandler? ServiceConstructed;
+    
 
-    internal void OnServiceResolved(IServiceProvider provider, Type serviceType, object instance, ServiceResolveKind kind) => 
-        ServiceResolved?.Invoke(provider, serviceType, instance, kind);
+    internal void OnServiceConstructed(IServiceProvider provider, Type serviceType, object instance, ServiceResolveKind kind) => 
+        ServiceConstructed?.Invoke(provider, serviceType, instance, kind);
 
     internal static bool VerifyOpenGenericServiceTrimmability { get; } =
         AppContext.TryGetSwitch("Antelcat.DependencyInjectionEx.VerifyOpenGenericServiceTrimmability", out bool verifyOpenGenerics) && verifyOpenGenerics;
@@ -55,23 +56,30 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         !RuntimeFeature.IsDynamicCodeSupported;
 #endif
 
-    internal ServiceProvider(ICollection<ServiceDescriptor> serviceDescriptors, ServiceProviderOptions options)
+    internal ServiceProviderEx(ICollection<ServiceDescriptor> serviceDescriptors, ServiceProviderOptions options)
     {
         // note that Root needs to be set before calling GetEngine(), because the engine may need to access Root
-        Root                  = new ServiceProviderEngineScope(this, isRootScope: true);
-        Engine                = GetEngine();
-        serviceAccessors      = new ConcurrentDictionary<ServiceIdentifier, ServiceAccessor>();
-
-        CallSiteFactory = new CallSiteFactory(serviceDescriptors);
+        Root               = new ServiceProviderEngineScope(this, isRootScope: true);
+        Engine             = GetEngine();
+        serviceAccessors   = new ConcurrentDictionary<ServiceIdentifier, ServiceAccessor>();
+        var listenerKind   = options.ListenKind;
+        CallSiteFactory = new CallSiteFactory(serviceDescriptors)
+        {
+            ReportSelector = ReportSelector
+        };
         // The list of built-in services that aren't part of the list of service descriptors
         // keep this in sync with CallSiteFactory.IsService
-        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProvider)), new ServiceProviderCallSite());
-        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceScopeFactory)), new ConstantCallSite(typeof(IServiceScopeFactory), Root) );
-        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsService)), new ConstantCallSite(typeof(IServiceProviderIsService), CallSiteFactory));
-        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsKeyedService)), new ConstantCallSite(typeof(IServiceProviderIsKeyedService), CallSiteFactory));
+        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProvider)), 
+            new ServiceProviderCallSite(ReportSelector));
+        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceScopeFactory)), 
+            new ConstantCallSite(ReportSelector,typeof(IServiceScopeFactory), Root));
+        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsService)), 
+            new ConstantCallSite(ReportSelector,typeof(IServiceProviderIsService), CallSiteFactory));
+        CallSiteFactory.Add(ServiceIdentifier.FromServiceType(typeof(IServiceProviderIsKeyedService)),
+            new ConstantCallSite(ReportSelector, typeof(IServiceProviderIsKeyedService), CallSiteFactory));
 
-        callbackMode = options.CallbackMode;
-        
+        callbackTime       = options.CallbackTime;
+
         if (options.ValidateScopes) callSiteValidator = new CallSiteValidator();
 
         if (options.ValidateOnBuild)
@@ -97,6 +105,8 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         }
 
         DependencyInjectionEventSource.Log.ServiceProviderBuilt(this);
+        return;
+        bool ReportSelector(CallSiteKind kind) => listenerKind.HasFlag(kind);
     }
 
     /// <summary>
@@ -169,39 +179,34 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         }
     }
 
-    private ResolveCallChain CreateCallChain() => callbackMode switch
+    private ResolveCallChain CreateCallChain(IServiceProvider provider) => callbackTime switch
     {
-        CallbackMode.Each  => new(new EachResolveTrigger(OnServiceResolved)),
-        CallbackMode.Batch => new(new BatchResolveTrigger(OnServiceResolved)),
-        _                  => throw new ArgumentException(nameof(callbackMode))
+        CallbackTime.Immediately => new(new ImmediateResolveTrigger(OnServiceConstructed)
+        {
+            Provider = provider
+        }),
+        CallbackTime.Finally => new(new FinalResolveTrigger(OnServiceConstructed)
+        {
+            Provider = provider
+        }),
+        _ => throw new ArgumentException(nameof(callbackTime))
     };
 
     internal object? GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
     {
         if (disposed) ThrowHelper.ThrowObjectDisposedException();
 
-        ResolveCallChain? chain = null;
-
-        var serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier, (Func<ServiceIdentifier, ServiceAccessor>)Accessor);
+        var serviceAccessor = serviceAccessors.GetOrAdd(serviceIdentifier,
+            identifier => CreateServiceAccessor(identifier, CreateCallChain(serviceProviderEngineScope)));
         OnResolve(serviceAccessor.CallSite, serviceProviderEngineScope);
         DependencyInjectionEventSource.Log.ServiceResolved(this, serviceIdentifier.ServiceType);
-        if (chain is null)
-        {
-            chain          = serviceAccessor.CallChain;
-            chain.Provider = serviceProviderEngineScope;
-        }
-        var     wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope, chain);
+        var chain = serviceAccessor.CallChain;
+        chain.Provider = serviceProviderEngineScope;
+        var wrap   = new ServiceProviderEngineScopeWrap(serviceProviderEngineScope, chain);
         var result = serviceAccessor.RealizedService?.Invoke(wrap);
         chain.OnResolved();
         Debug.Assert(result is null || CallSiteFactory.IsService(serviceIdentifier));
         return result;
-
-        ServiceAccessor Accessor(ServiceIdentifier identifier)
-        {
-            chain          = CreateCallChain();
-            chain.Provider = serviceProviderEngineScope; //map resolve time service provider
-            return CreateServiceAccessor(identifier, chain);
-        }
     }
 
     private void ValidateService(ServiceDescriptor descriptor)
@@ -259,13 +264,13 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
         };
     }
 
-    internal void ReplaceServiceAccessor(ServiceCallSite callSite, ServiceResolveHandler accessor)
+    internal void ReplaceServiceAccessor(ServiceCallSite callSite, ServiceResolveHandler accessor, IServiceProvider provider)
     {
         serviceAccessors[new ServiceIdentifier(callSite.Key, callSite.ServiceType)] = new ServiceAccessor
         {
             CallSite        = callSite,
             RealizedService = accessor,
-            CallChain       = CreateCallChain()
+            CallChain       = CreateCallChain(provider)
         };
     }
 
@@ -305,10 +310,10 @@ public sealed class ServiceProvider : IServiceProvider, IKeyedServiceProvider, I
 
     private string DebuggerToString() => Root.DebuggerToString();
 
-    internal sealed class ServiceProviderDebugView(ServiceProvider serviceProvider)
+    internal sealed class ServiceProviderDebugView(ServiceProviderEx serviceProvider)
     {
         public List<ServiceDescriptor> ServiceDescriptors =>
-            [..serviceProvider.Root.RootProvider.CallSiteFactory.Descriptors];
+            [..serviceProvider.Root.RootProviderEx.CallSiteFactory.Descriptors];
         public List<object> Disposables => [..serviceProvider.Root.Disposables];
         public bool         Disposed    => serviceProvider.Root.Disposed;
         public bool         IsScope     => !serviceProvider.Root.IsRootScope;

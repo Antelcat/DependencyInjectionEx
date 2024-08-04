@@ -11,13 +11,18 @@ internal sealed class ConstructorCallSite : ServiceCallSite
     internal ConstructorInfo   ConstructorInfo    { get; }
     internal ServiceCallSite[] ParameterCallSites { get; }
 
-    public ConstructorCallSite(ResultCache cache, Type serviceType, ConstructorInfo constructorInfo) : this(cache,
-        serviceType, constructorInfo, [])
+    public ConstructorCallSite(ResultCache cache,
+        Func<CallSiteKind, bool> reportSelector,
+        Type serviceType,
+        ConstructorInfo constructorInfo) : this(cache, reportSelector, serviceType, constructorInfo, [])
     {
     }
 
-    public ConstructorCallSite(ResultCache cache, Type serviceType, ConstructorInfo constructorInfo,
-        ServiceCallSite[] parameterCallSites) : base(cache)
+    public ConstructorCallSite(ResultCache cache, 
+        Func<CallSiteKind, bool> reportSelector, 
+        Type serviceType,
+        ConstructorInfo constructorInfo,
+        ServiceCallSite[] parameterCallSites) : base(cache, reportSelector)
     {
         if (!serviceType.IsAssignableFrom(constructorInfo.DeclaringType))
         {
