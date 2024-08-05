@@ -28,12 +28,6 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
 
     private static readonly MethodInfo CallSiteRuntimeResolverInstanceField = typeof(CallSiteRuntimeResolver).GetProperty(
         nameof(CallSiteRuntimeResolver.Instance), BindingFlags.Static | BindingFlags.Public | BindingFlags.Instance)!.GetMethod!;
-
-    internal static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap).GetProperty(
-        nameof(ServiceProviderEngineScopeWrap.CallChain), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
-
-    private static readonly MethodInfo PostResolve = typeof(ResolveCallChain).GetMethod(
-        nameof(ResolveCallChain.PostResolve), BindingFlags.Public | BindingFlags.Instance)!;
     
     private static readonly FieldInfo FactoriesField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Factories))!;
     private static readonly FieldInfo ConstantsField = typeof(ILEmitResolverBuilderRuntimeContext).GetField(nameof(ILEmitResolverBuilderRuntimeContext.Constants))!;
@@ -70,8 +64,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
         buildTypeDelegate  = (_, cs) => BuildTypeNoCache(cs);
     }
 
-    public ServiceResolveHandler Build(ServiceCallSite callSite) => 
-        BuildType(callSite).Lambda;
+    public ServiceResolveHandler Build(ServiceCallSite callSite) => BuildType(callSite).Lambda;
 
     private GeneratedMethod BuildType(ServiceCallSite callSite)
     {
@@ -157,7 +150,7 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
         argument.Generator.Emit(OpCodes.Ldloc, chain); //load wrap
         argument.Generator.Emit(OpCodes.Ldloc, localBuilder);
         AddCallSite(argument, callSite);
-        argument.Generator.Emit(OpCodes.Callvirt, PostResolve);
+        argument.Generator.Emit(OpCodes.Callvirt, ServiceLookupHelpers.PostResolve);
         return null;
     }
 

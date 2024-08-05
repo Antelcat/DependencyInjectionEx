@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Antelcat.DependencyInjectionEx.Callback;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
@@ -20,23 +21,30 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
     private static readonly ParameterExpression ResolvedServices =
         Expression.Variable(typeof(IDictionary<ServiceCacheKey, object>), ScopeParameter.Name + "resolvedServices");
 
-    private static readonly ParameterExpression
-        Sync = Expression.Variable(typeof(object), ScopeParameter.Name + "sync");
+    private static readonly ParameterExpression Sync = 
+        Expression.Variable(typeof(object), ScopeParameter.Name + "sync");
+
+    private static readonly ParameterExpression CallChain =
+        Expression.Variable(typeof(ResolveCallChain), ScopeParameter.Name + "callChain");
 
     private static readonly BinaryExpression ResolvedServicesVariableAssignment =
         Expression.Assign(ResolvedServices,
             Expression.Property(
                 ScopeParameter,
-                typeof(IServiceProviderEngineScope).GetProperty(nameof(IServiceProviderEngineScope.ResolvedServices),
-                    BindingFlags.Instance | BindingFlags.NonPublic)!));
+                typeof(ServiceProviderEngineScopeWrap).GetProperty(nameof(ServiceProviderEngineScopeWrap.ResolvedServices),
+                    BindingFlags.Instance | BindingFlags.Public)!));
 
     private static readonly BinaryExpression SyncVariableAssignment =
         Expression.Assign(Sync,
             Expression.Property(
                 ScopeParameter,
-                typeof(IServiceProviderEngineScope).GetProperty(nameof(IServiceProviderEngineScope.Sync),
-                    BindingFlags.Instance | BindingFlags.NonPublic)!));
+                typeof(ServiceProviderEngineScopeWrap).GetProperty(nameof(ServiceProviderEngineScopeWrap.Sync),
+                    BindingFlags.Instance | BindingFlags.Public)!));
 
+    private static readonly BinaryExpression CallChainVariableAssignment =
+        Expression.Assign(CallChain,
+            Expression.Property(ScopeParameter, ServiceLookupHelpers.CallChain));
+    
     private static readonly ParameterExpression CaptureDisposableParameter = Expression.Parameter(typeof(object));
 
     private static readonly LambdaExpression CaptureDisposable = Expression.Lambda(
@@ -46,7 +54,8 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
     private static readonly ConstantExpression CallSiteRuntimeResolverInstanceExpression = Expression.Constant(
         CallSiteRuntimeResolver.Instance,
         typeof(CallSiteRuntimeResolver));
-
+    
+    
     private readonly ServiceProviderEngineScope rootScope;
 
     private readonly ConcurrentDictionary<ServiceCacheKey, ServiceResolveHandler> scopeResolverCache;
@@ -66,7 +75,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         if (callSite.Cache.Location == CallSiteResultCacheLocation.Scope)
         {
 #if NETFRAMEWORK || NETSTANDARD2_0
-                return scopeResolverCache.GetOrAdd(callSite.Cache.Key, key => buildTypeDelegate(key, callSite));
+            return scopeResolverCache.GetOrAdd(callSite.Cache.Key, key => buildTypeDelegate(key, callSite));
 #else
             return scopeResolverCache.GetOrAdd(callSite.Cache.Key, buildTypeDelegate, callSite);
 #endif
@@ -87,13 +96,20 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         callSite.Cache.Location == CallSiteResultCacheLocation.Scope
             ? Expression.Lambda<ServiceResolveHandler>(
                 Expression.Block(
-                    new[] { ResolvedServices, Sync },
+                    [
+                        ResolvedServices, Sync, CallChain
+                    ],
                     ResolvedServicesVariableAssignment,
                     SyncVariableAssignment,
+                    CallChainVariableAssignment,
                     BuildScopedExpression(callSite)),
                 ScopeParameter)
             : Expression.Lambda<ServiceResolveHandler>(
-                Convert(VisitCallSite(callSite, null), typeof(object), forceValueTypeConversion: true),
+                Expression.Block(
+                    [CallChain],
+                    CallChainVariableAssignment,
+                    Convert(VisitCallSite(callSite, null), typeof(object), forceValueTypeConversion: true)
+                ),
                 ScopeParameter);
 
     protected override Expression VisitRootCache(ServiceCallSite singletonCallSite, object? context) => 
@@ -133,7 +149,7 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
         if (callSite.ServiceCallSites.Length == 0)
             return Expression.Constant(
                 GetArrayEmptyMethodInfo(callSite.ItemType)
-                    .Invoke(obj: null, parameters: Array.Empty<object>()));
+                    .Invoke(obj: null, parameters: []));
 
         return NewArrayInit(
             callSite.ItemType,
@@ -182,9 +198,9 @@ internal sealed class ExpressionResolverBuilder : CallSiteVisitor<object?, Expre
     {
         if (callSite.NeedReport)
         {
-            
+            var callChain = CallChain;
+            return Expression.Call(callChain, ServiceLookupHelpers.PostResolve, result, Expression.Constant(callSite));
         }
-
         return result;
     }
 

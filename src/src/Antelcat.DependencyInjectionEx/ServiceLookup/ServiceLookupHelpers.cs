@@ -6,11 +6,18 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
+using Antelcat.DependencyInjectionEx.Callback;
 
 namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 internal static class ServiceLookupHelpers
 {
+    internal static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap).GetProperty(
+        nameof(ServiceProviderEngineScopeWrap.CallChain), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
+
+    internal static readonly MethodInfo PostResolve = typeof(ResolveCallChain).GetMethod(
+        nameof(ResolveCallChain.PostResolve), BindingFlags.Public | BindingFlags.Instance)!;
+    
     private const BindingFlags LookupFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
     private static readonly MethodInfo ArrayEmptyMethodInfo = typeof(Array).GetMethod(nameof(Array.Empty))!;
 
@@ -18,7 +25,7 @@ internal static class ServiceLookupHelpers
         .GetMethod(nameof(Func<IServiceProvider, object>.Invoke), LookupFlags)!;
 
     internal static readonly MethodInfo CaptureDisposableMethodInfo = typeof(IServiceProviderEngineScope)
-        .GetMethod(nameof(IServiceProviderEngineScope.CaptureDisposable), LookupFlags)!;
+        .GetMethod(nameof(ServiceProviderEngineScopeWrap.CaptureDisposable), LookupFlags)!;
 
     internal static readonly MethodInfo TryGetValueMethodInfo = typeof(IDictionary<ServiceCacheKey, object>)
         .GetMethod(nameof(IDictionary<ServiceCacheKey, object>.TryGetValue), LookupFlags)!;

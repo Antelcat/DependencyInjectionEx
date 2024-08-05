@@ -22,7 +22,7 @@ internal sealed class ILEmitResolverBuilderContext(ILGenerator generator)
             if (localChain is not null) return localChain;
             localChain = Generator.DeclareLocal(typeof(ResolveCallChain));
             Generator.Emit(OpCodes.Ldarg_1);
-            Generator.Emit(OpCodes.Callvirt, ILEmitResolverBuilder.CallChain);
+            Generator.Emit(OpCodes.Callvirt, ServiceLookupHelpers.CallChain);
             Generator.Emit(OpCodes.Stloc, localChain);
             return localChain;
         }

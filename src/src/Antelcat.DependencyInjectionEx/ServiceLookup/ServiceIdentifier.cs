@@ -22,19 +22,14 @@ internal readonly struct ServiceIdentifier(object? serviceKey, Type serviceType)
 
     public static ServiceIdentifier FromServiceType(Type type) => new(null, type);
 
-    public bool Equals(ServiceIdentifier other)
-    {
-        if (ServiceKey == null && other.ServiceKey == null)
-        {
-            return ServiceType == other.ServiceType;
-        }
-
-        if (ServiceKey != null && other.ServiceKey != null)
-        {
-            return ServiceType == other.ServiceType && ServiceKey.Equals(other.ServiceKey);
-        }
-        return false;
-    }
+    public bool Equals(ServiceIdentifier other) =>
+        ServiceKey          == null
+        && other.ServiceKey == null
+            ? ServiceType == other.ServiceType
+            : ServiceKey          != null
+              && other.ServiceKey != null
+              && ServiceType      == other.ServiceType
+              && ServiceKey.Equals(other.ServiceKey);
 
     public override bool Equals([NotNullWhen(true)] object? obj) => 
         obj is ServiceIdentifier identifier && Equals(identifier);
