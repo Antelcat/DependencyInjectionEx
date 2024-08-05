@@ -1,3 +1,4 @@
+using Antelcat.DependencyInjectionEx.Autowired;
 using Antelcat.DependencyInjectionEx.Tests;
 
 
@@ -7,11 +8,19 @@ namespace Tests;
 
 public interface IA : IDisposable;
 
-public class A : Service<A>, IA;
+public class A : Service<A>, IA
+{
+    [Autowired]
+    public required IB B { get; set; }
+}
 
 public interface IB : IDisposable;
 
-public class B : Service<B>, IB;
+public class B : Service<B>, IB
+{
+    [Autowired]
+    public required IA A { get; set; }
+}
 
 public interface IC : IDisposable;
 

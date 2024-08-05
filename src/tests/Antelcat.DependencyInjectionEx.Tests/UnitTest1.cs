@@ -14,13 +14,10 @@ public class Tests
         provider = new ServiceCollection()
             .AddTransient(typeof(IResolvable<>), typeof(Resolvable<>))
             .AddSingleton(typeof(IA), typeof(A))
-            .AddScoped<IB, B>()
+            .AddSingleton<IB, B>()
             .AddTransient<IC, C>()
             .AddTransient(typeof(D))
-            .BuildAutowiredServiceProviderEx(new ServiceProviderOptions
-            {
-                CallbackTime = CallbackTime.Finally,
-            });
+            .BuildAutowiredServiceProviderEx();
         provider.ServiceConstructed += (_, _, instance, kind) =>
         {
             Console.WriteLine($"{kind} {instance}");
@@ -28,7 +25,7 @@ public class Tests
     }
 
     [Test]
-    public void TestOnce() => provider.CreateScope().ServiceProvider.TestResolve();
+    public void TestOnce() => provider.CreateScope().ServiceProvider.GetService<IA>();
 
     [Test]
     public async Task TestTribe()

@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>8.0.2</Version>
+        <Version>8.0.3</Version>
         <Authors>Antelcat</Authors>
         <Copyright>Copyright Antelcat. All rights reversed</Copyright>
         <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>
@@ -10,7 +10,7 @@
         <PackageIcon>Icon.png</PackageIcon>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>Support expression report. Change interface and ServiceProviderEx</PackageReleaseNotes>
+        <PackageReleaseNotes>Repair potential deadlock</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
