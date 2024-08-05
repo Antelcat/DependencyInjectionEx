@@ -11,7 +11,9 @@ internal class FinalResolveTrigger(ServiceResolvedHandler handler) : ResolveTrig
 
     public override void FinishResolve()
     {
-        Resolves?.Invoke(Provider);
+        if (Resolves == null) return;
+        var resolves = Resolves;
         Resolves = null;
+        resolves?.Invoke(Provider);
     }
 }
