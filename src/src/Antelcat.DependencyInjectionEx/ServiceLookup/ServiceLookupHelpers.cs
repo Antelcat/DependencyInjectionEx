@@ -12,15 +12,16 @@ namespace Antelcat.DependencyInjectionEx.ServiceLookup;
 
 internal static class ServiceLookupHelpers
 {
-    internal static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap).GetProperty(
-        nameof(ServiceProviderEngineScopeWrap.CallChain), BindingFlags.Instance | BindingFlags.Public)!.GetMethod!;
-
-    internal static readonly MethodInfo PostResolve = typeof(ResolveCallChain).GetMethod(
-        nameof(ResolveCallChain.PostResolve), BindingFlags.Public | BindingFlags.Instance)!;
-    
     private const BindingFlags LookupFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
     private static readonly MethodInfo ArrayEmptyMethodInfo = typeof(Array).GetMethod(nameof(Array.Empty))!;
 
+    internal static readonly MethodInfo CallChain = typeof(ServiceProviderEngineScopeWrap)
+        .GetProperty(nameof(ServiceProviderEngineScopeWrap.CallChain), LookupFlags)!.GetMethod!;
+
+    internal static readonly MethodInfo PostResolve = typeof(ResolveCallChain)
+        .GetMethod(nameof(ResolveCallChain.PostResolve), LookupFlags)!;
+    
     internal static readonly MethodInfo InvokeFactoryMethodInfo = typeof(Func<IServiceProvider, object>)
         .GetMethod(nameof(Func<IServiceProvider, object>.Invoke), LookupFlags)!;
 
