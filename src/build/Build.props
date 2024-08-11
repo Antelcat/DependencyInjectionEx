@@ -3,7 +3,7 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Version>8.1.0</Version>
         <Authors>Antelcat</Authors>
-        <Copyright>Copyright Antelcat. All rights reversed</Copyright>
+        <Copyright>Copyright Antelcat. All rights reserved</Copyright>
         <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>
         <RepositoryUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
