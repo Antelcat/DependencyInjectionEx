@@ -18,7 +18,7 @@ public class Tests
             .AddTransient<IC, C>()
             .AddTransient(typeof(D))
             .BuildAutowiredServiceProviderEx();
-        provider.ServiceConstructed += (_, _, instance, kind) =>
+        provider.ServiceResolved += (_, _, instance, kind) =>
         {
             Console.WriteLine($"{kind} {instance}");
         };

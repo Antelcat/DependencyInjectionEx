@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>8.0.3</Version>
+        <Version>8.1.0</Version>
         <Authors>Antelcat</Authors>
         <Copyright>Copyright Antelcat. All rights reversed</Copyright>
         <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>
@@ -10,7 +10,7 @@
         <PackageIcon>Icon.png</PackageIcon>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>Repair potential deadlock</PackageReleaseNotes>
+        <PackageReleaseNotes>Autowired type filter</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

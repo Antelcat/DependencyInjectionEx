@@ -1,30 +1,25 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace Antelcat.DependencyInjectionEx.Autowired;
 
-public class AutowiredProvider
+public static class AutowiredProvider
 {
-    private readonly ConcurrentDictionary<Type, AutowiredResolver> resolvers = [];
-    private readonly HashSet<Type>                                 ignores   = [];
+    private static readonly ConcurrentDictionary<Type, AutowiredResolver> Resolvers = [];
 
-    public void Inject(object target, IServiceProvider provider, ServiceResolveKind kind)
+    public static void Inject(object target, IServiceProvider provider, ServiceResolveKind kind)
     {
-        if (kind is not ServiceResolveKind.Constructor) return;
+        if (kind is not ServiceResolveKind.Constructor || target is Type) return;
         var type = target.GetType();
-        if (ignores.Contains(type)) return;
-        if (!resolvers.TryGetValue(type, out var resolver))
-        {
-            resolver = new AutowiredResolver(type);
-            if (!resolver.NeedResolve)
-            {
-                ignores.Add(type);
-                return;
-            }
-            resolvers.TryAdd(type, resolver);
-        }
-
-        resolver.Map(target, provider);
+        if (SystemType(type)) return;
+        Resolvers.GetOrAdd(type, static key => new AutowiredResolver(key)).Map(target, provider);
     }
+
+    private static bool SystemType(Type type) =>
+        type.IsEnum      ||
+        type.IsPointer   ||
+        type.IsPrimitive ||
+        type.IsArray     ||
+        type.IsImport    ||
+        type.IsCOMObject;
 }

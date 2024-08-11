@@ -37,11 +37,11 @@ public sealed class ServiceProviderEx : IServiceProvider, IKeyedServiceProvider,
 
     internal ServiceProviderEngineScope Root { get; }
 
-    public event ServiceResolvedHandler? ServiceConstructed;
+    public event ServiceResolvedHandler? ServiceResolved;
     
 
     internal void OnServiceConstructed(IServiceProvider provider, Type serviceType, object instance, ServiceResolveKind kind) => 
-        ServiceConstructed?.Invoke(provider, serviceType, instance, kind);
+        ServiceResolved?.Invoke(provider, serviceType, instance, kind);
 
     internal static bool VerifyOpenGenericServiceTrimmability { get; } =
         AppContext.TryGetSwitch("Antelcat.DependencyInjectionEx.VerifyOpenGenericServiceTrimmability", out bool verifyOpenGenerics) && verifyOpenGenerics;

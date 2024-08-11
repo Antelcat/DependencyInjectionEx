@@ -7,8 +7,7 @@ public static class AutowiredServiceProviderBuilderExtensions
     private static readonly ServiceResolveKind Kind = ServiceResolveKind.Constructor;
     private static ServiceProviderEx AutowiredProvider(this ServiceProviderEx serviceProvider)
     {
-        var ap = new AutowiredProvider();
-        serviceProvider.ServiceConstructed += (provider, _, instance, kind) => ap.Inject(instance, provider, kind);
+        serviceProvider.ServiceResolved += (provider, _, instance, kind) =>  Autowired.AutowiredProvider.Inject(instance, provider, kind);
         return serviceProvider;
     }
 

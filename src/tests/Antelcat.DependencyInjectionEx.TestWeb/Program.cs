@@ -22,7 +22,7 @@ var app = builder.Build();
 
 var b = app.Services.GetRequiredService<IB>();
 
-(app.Services as ServiceProviderEx)!.ServiceConstructed += (p, type, controller, kind) =>
+(app.Services as ServiceProviderEx)!.ServiceResolved += (p, type, controller, kind) =>
 {
     if (controller is ControllerBase)
     {

@@ -10,6 +10,8 @@ namespace Antelcat.DependencyInjectionEx.Autowired;
 
 internal class AutowiredResolver(Type type)
 {
+    private static BindingFlags SearchFlags => BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    
     internal static bool IL =>
 #if NETFRAMEWORK || NETSTANDARD2_0
         true;
@@ -20,7 +22,7 @@ internal class AutowiredResolver(Type type)
     public bool NeedResolve => mappers.Count > 0;
 
     private readonly IList<Action<object, IServiceProvider>> mappers = type
-        .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+        .GetFields(SearchFlags)
         .Select(static x =>
             new Tuple<FieldInfo, AutowiredAttribute?>(x, x.GetCustomAttribute<AutowiredAttribute>()))
         .Where(static x => x.Item2 != null)
@@ -28,7 +30,7 @@ internal class AutowiredResolver(Type type)
             ? MapHandler(x.Item1.CreateSetter(), x.Item2!, x.Item1.FieldType)
             : MapReflection(x.Item1.SetValue, x.Item2!, x.Item1.FieldType))
         .Concat(type
-            .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .GetProperties(SearchFlags)
             .Select(static x =>
                 new Tuple<PropertyInfo, AutowiredAttribute?>(x, x.GetCustomAttribute<AutowiredAttribute>()))
             .Where(static x => x.Item1.CanWrite && x.Item2 != null)

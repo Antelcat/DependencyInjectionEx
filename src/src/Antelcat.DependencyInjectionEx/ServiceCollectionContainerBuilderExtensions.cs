@@ -34,7 +34,7 @@ public static class ServiceCollectionContainerBuilderExtensions
 
     /// <summary>
     /// Creates a <see cref="ServiceProviderEx"/> containing services from the provided <see cref="IServiceCollection"/>
-    /// optionally specify the kind of service resolve when listening to <see cref="ServiceProviderEx.ServiceConstructed"/> event.
+    /// optionally specify the kind of service resolve when listening to <see cref="ServiceProviderEx.ServiceResolved"/> event.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> containing service descriptors.</param>
     /// <param name="kind"><see cref="ServiceResolveKind"/></param>
