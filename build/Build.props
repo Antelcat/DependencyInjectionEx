@@ -14,12 +14,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\..\docs\Icon.png">
+        <None Include="..\..\docs\Icon.png">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
             <Link>Icon.png</Link>
         </None>
-        <None Include="..\..\..\README.md">
+        <None Include="..\..\README.md">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
             <Link>README.md</Link>

@@ -20,8 +20,8 @@
         <LangVersion>preview</LangVersion>
         <RootNamespace>Antelcat.DependencyInjectionEx</RootNamespace>
         <ILLinkDirectory>ILLink\</ILLinkDirectory>
-        <CoreLibSharedDir>$(ProjectDir)..\..\extern\</CoreLibSharedDir>
-        <CommonPath>$(ProjectDir)..\..\extern\Common\src\</CommonPath>
+        <CoreLibSharedDir>$(ProjectDir)..\extern\</CoreLibSharedDir>
+        <CommonPath>$(ProjectDir)..\extern\Common\src\</CommonPath>
         <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
         <LinkCodeAnalysis>System\Diagnostics\CodeAnalysis</LinkCodeAnalysis>
         <LinkCommonExtensions>Common\src\Extensions</LinkCommonExtensions>
