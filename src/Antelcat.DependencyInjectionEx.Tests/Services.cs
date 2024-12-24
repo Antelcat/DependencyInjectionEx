@@ -1,6 +1,6 @@
 using Antelcat.DependencyInjectionEx.Autowired;
 using Antelcat.DependencyInjectionEx.Tests;
-
+using Microsoft.Extensions.DependencyInjection;
 
 
 // ReSharper disable once CheckNamespace
@@ -32,11 +32,33 @@ public interface IResolvable<T> : IDisposable;
 
 public class Resolvable<T> : IResolvable<T>
 {
+    public Resolvable()
+    {
+        Console.WriteLine("Ctor : " + this);
+    }
+    
     private static int count;
 
     protected readonly int Number = ++count;
 
     public override string ToString() => $"{base.ToString()}-{Number}";
 
-    public void Dispose() => Console.WriteLine(this);
+    public void Dispose() => Console.WriteLine("Dctor : " + this);
+}
+
+
+
+public class KeyA : Resolvable<IA>, IA
+{
+    
+}
+
+public class KeyB([FromKeyedServices(nameof(IA))] IA a) : Resolvable<IB>, IB
+{
+
+}
+
+public class KeyC([FromKeyedServices(nameof(IA))] IA a, [FromKeyedServices(nameof(IB))] IB b) : Resolvable<IC>, IC
+{
+
 }

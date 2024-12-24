@@ -102,8 +102,13 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
             var assemblyName = "Test" + DateTime.Now.Ticks;
             var fileName = assemblyName + ".dll";
 
+#if NETFRAMEWORK
             var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(assemblyName), AssemblyBuilderAccess.RunAndSave);
             var module = assembly.DefineDynamicModule(assemblyName, fileName);
+#else
+            var assembly = AssemblyBuilder.DefinePersistedAssembly(new AssemblyName(assemblyName), typeof(object).Assembly);
+            var module = assembly.DefineDynamicModule(assemblyName);
+#endif            
             var type = module.DefineType(callSite.ServiceType.Name + "Resolver");
 
             var method = type.DefineMethod(
@@ -112,7 +117,6 @@ internal sealed class ILEmitResolverBuilder : CallSiteVisitor<ILEmitResolverBuil
 
             GenerateMethodBody(callSite, method.GetILGenerator());
             type.CreateTypeInfo();
-            // Assembly.Save is only available in .NET Framework (https://github.com/dotnet/runtime/issues/15704)
             assembly.Save(fileName);
 #endif
         DependencyInjectionEventSource.Log.DynamicMethodBuilt(rootScope.RootProviderEx, callSite.ServiceType, ilGenerator.ILOffset);

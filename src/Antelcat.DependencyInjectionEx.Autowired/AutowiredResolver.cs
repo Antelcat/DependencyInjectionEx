@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Antelcat.IL;
 using Antelcat.IL.Extensions;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,17 +12,17 @@ namespace Antelcat.DependencyInjectionEx.Autowired;
 internal class AutowiredResolver(Type type)
 {
     private static BindingFlags SearchFlags => BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-    
+
     internal static bool IL =>
 #if NETFRAMEWORK || NETSTANDARD2_0
         true;
 #else
-            RuntimeFeature.IsDynamicCodeSupported;
+        RuntimeFeature.IsDynamicCodeSupported;
 #endif
 
     public bool NeedResolve => mappers.Count > 0;
 
-    private readonly IList<Action<object, IServiceProvider>> mappers = type
+    public readonly IList<Action<object, IServiceProvider>> mappers = type
         .GetFields(SearchFlags)
         .Select(static x =>
             new Tuple<FieldInfo, AutowiredAttribute?>(x, x.GetCustomAttribute<AutowiredAttribute>()))

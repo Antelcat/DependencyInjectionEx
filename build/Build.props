@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>8.1.0</Version>
+        <Version>9.0.0</Version>
         <Authors>Antelcat</Authors>
         <Copyright>Copyright Antelcat. All rights reserved</Copyright>
         <PackageProjectUrl>https://github.com/Antelcat/Antelcat.DependencyInjectionEx</PackageProjectUrl>

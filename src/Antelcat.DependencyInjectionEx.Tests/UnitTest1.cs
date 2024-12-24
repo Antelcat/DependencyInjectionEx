@@ -1,5 +1,6 @@
 using Antelcat.DependencyInjectionEx.Autowired;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tests;
 
 namespace Antelcat.DependencyInjectionEx.Tests;
@@ -7,6 +8,7 @@ namespace Antelcat.DependencyInjectionEx.Tests;
 public class Tests
 {
     private ServiceProviderEx provider;
+    private ServiceProviderEx keyedProvider;
     
     [SetUp]
     public void Setup()
@@ -22,6 +24,12 @@ public class Tests
         {
             Console.WriteLine($"{kind} {instance}");
         };
+
+        keyedProvider = new ServiceCollection()
+            .AddKeyedSingleton(typeof(IA), nameof(IA), typeof(KeyA))
+            .AddKeyedScoped(typeof(IB), nameof(IB), typeof(KeyB))
+            .AddKeyedTransient(typeof(IC), nameof(IC), typeof(KeyC))
+            .BuildAutowiredServiceProviderEx();
     }
 
     [Test]
@@ -37,7 +45,7 @@ public class Tests
     }
 
     [Test]
-    public async Task TestKeyedService()
+    public async Task TestService()
     {
         var root = provider.CreateScope().ServiceProvider;
         root.TestResolve();
@@ -51,6 +59,17 @@ public class Tests
         var another = provider.CreateScope().ServiceProvider;
         another.TestResolve();
         another.TestResolve();
+    }
+    
+    [Test]
+    public async Task TestKeyedService()
+    {
+        var root = keyedProvider.CreateScope().ServiceProvider;
+        root.GetRequiredKeyedService<IC>(nameof(IC));
+        var scope = keyedProvider.CreateScope().ServiceProvider;
+        scope.GetRequiredKeyedService<IC>(nameof(IC));
+        var another = keyedProvider.CreateScope().ServiceProvider;
+        another.GetRequiredKeyedService<IC>(nameof(IC));
     }
     
     [Test]
@@ -69,5 +88,6 @@ public class Tests
     public void Dispose()
     {
         provider.Dispose();
+        keyedProvider.Dispose();
     }
 }
