@@ -2,14 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+#if !NETSTANDARD2_0
 using System.Runtime.CompilerServices;
 using Antelcat.IL;
 using Antelcat.IL.Extensions;
+using SetHandler = Antelcat.IL.SetHandler<object,object>;
+#else
+using SetHandler = System.Action<object,object>;
+#endif
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Antelcat.DependencyInjectionEx.Autowired;
 
-internal class AutowiredResolver(Type type)
+internal partial class AutowiredResolver(Type type)
 {
     private static BindingFlags SearchFlags => BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -59,7 +64,7 @@ internal class AutowiredResolver(Type type)
     }
 
     private static Action<object, IServiceProvider> MapHandler(
-        SetHandler<object, object> handler,
+        SetHandler handler,
         AutowiredAttribute attribute,
         Type memberType)
     {
@@ -70,15 +75,46 @@ internal class AutowiredResolver(Type type)
             ? (target, provider) =>
             {
                 var value = provider.GetService(type);
-                if (value is not null) handler(ref target!, value);
+                if (value is not null) handler(
+#if !NETSTANDARD2_0
+                    ref 
+#endif
+                    target!, value);
             }
             : !attribute.GetServices
-                ? (target, provider) => { handler(ref target!, provider.GetRequiredKeyedService(type, key)); }
-                : (target, provider) => { handler(ref target!, provider.GetKeyedServices(type, key)); };
+                ? (target, provider) => { handler(
+#if !NETSTANDARD2_0
+                    ref 
+#endif
+                    target!, provider.GetRequiredKeyedService(type, key)); }
+                : (target, provider) => { handler(
+#if !NETSTANDARD2_0
+                    ref 
+#endif
+                    target!, provider.GetKeyedServices(type, key)); };
     }
 
     public void Map(object target, IServiceProvider provider)
     {
         foreach (var mapper in mappers) mapper(target, provider);
     }
+
 }
+
+
+#if NETSTANDARD2_0
+
+
+file static class ReflectionExtension
+{
+    internal static SetHandler CreateSetter(this FieldInfo info)
+    {
+        return info.SetValue;
+    }
+    
+    internal static SetHandler CreateSetter(this PropertyInfo info)
+    {
+        return info.SetValue;
+    }
+}
+#endif

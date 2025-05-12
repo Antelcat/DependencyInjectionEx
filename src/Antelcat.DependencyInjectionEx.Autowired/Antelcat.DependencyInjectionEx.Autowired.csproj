@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Antelcat.IL" Version="1.0.0"/>
+        <PackageReference Condition="$(TargetFramework) != 'netstandard2.0'" Include="Antelcat.IL" Version="[1.0.0,)"/>
         <InternalsVisibleTo Include="Antelcat.DependencyInjectionEx.Tests"/>
     </ItemGroup>
 
